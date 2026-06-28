@@ -5,9 +5,6 @@ import SystemSettings from '@/models/SystemSettings';
 
 // GET - Retrieve system settings (singleton)
 export async function GET() {
-  const { error } = await getAuthUser(['admin', 'election_admin', 'voter']);
-  if (error) return error;
-
   try {
     await dbConnect();
     let settings = await SystemSettings.findOne();

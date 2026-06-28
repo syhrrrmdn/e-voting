@@ -145,8 +145,10 @@ export default function AvailableElections({ onSelectElection, onNavigate }: {
               <div className="border-t border-slate-100 pt-4 flex items-center justify-between mt-auto">
                 {!e.eligible && (e.status === 'active' || e.status === 'closed') ? (
                   <span className="text-xs text-red-500 font-medium italic">{e.reason}</span>
-                ) : (
+                ) : e.status === 'closed' ? (
                   <span className="text-xs text-slate-400 font-semibold">{e.totalVotes || 0} Suara Terdaftar</span>
+                ) : (
+                  <span className="text-xs text-slate-400 font-medium flex items-center gap-1">🔒 Rahasia Suara Dijaga</span>
                 )}
 
                 {e.status === 'active' && (

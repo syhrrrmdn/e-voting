@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { PageHeader, Card, Button, Input, Select, Toggle, Badge } from '@/components/ui';
+import { PageHeader, Card, Button, Input, Select, Badge } from '@/components/ui';
 
 export default function SystemSettings() {
   const [settings, setSettings] = useState<any>({
@@ -219,9 +219,9 @@ export default function SystemSettings() {
         </Card>
 
         {/* General Settings */}
-        <Card>
+        <Card className="lg:col-span-2">
           <h3 className="text-base font-semibold text-slate-900 mb-4">Umum</h3>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input 
               label="Nama Platform" 
               value={settings.appName} 
@@ -232,94 +232,21 @@ export default function SystemSettings() {
               value={settings.tagline} 
               onChange={e => handleUpdateField('tagline', e.target.value)} 
             />
-            <Select 
-              label="Bahasa Default" 
-              value={settings.defaultLanguage}
-              onChange={e => handleUpdateField('defaultLanguage', e.target.value)}
-              options={[{value:'id',label:'Bahasa Indonesia'},{value:'en',label:'English'}]} 
-            />
-            <Select 
-              label="Timezone" 
-              value={settings.timezone}
-              onChange={e => handleUpdateField('timezone', e.target.value)}
-              options={[{value:'Asia/Jakarta',label:'WIB (UTC+7)'},{value:'Asia/Makassar',label:'WITA (UTC+8)'},{value:'Asia/Jayapura',label:'WIT (UTC+9)'}]} 
-            />
-          </div>
-          <div className="mt-6">
-            <Button onClick={handleSaveSettings} disabled={saving}>
-              {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </Button>
-          </div>
-        </Card>
-
-        {/* Election Policy Settings */}
-        <Card>
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Pengaturan Pemilihan</h3>
-          <div className="space-y-5">
-            <Toggle 
-              checked={settings.emailNotification} 
-              onChange={val => handleUpdateField('emailNotification', val)} 
-              label="Kirim notifikasi email saat election dimulai" 
-            />
-            <Toggle 
-              checked={settings.autoClose} 
-              onChange={val => handleUpdateField('autoClose', val)} 
-              label="Auto-close election saat waktu berakhir" 
-            />
-            <Toggle 
-              checked={settings.maintenanceMode} 
-              onChange={val => handleUpdateField('maintenanceMode', val)} 
-              label="Maintenance mode" 
-            />
-            <Input 
-              label="Max Kandidat per Election" 
-              type="number" 
-              value={settings.maxCandidates} 
-              onChange={e => handleUpdateField('maxCandidates', Number(e.target.value))} 
-            />
-            <Input 
-              label="Min Voter Threshold (%)" 
-              type="number" 
-              value={settings.minVoterThreshold} 
-              onChange={e => handleUpdateField('minVoterThreshold', Number(e.target.value))} 
-            />
-          </div>
-          <div className="mt-6">
-            <Button onClick={handleSaveSettings} disabled={saving}>
-              {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </Button>
-          </div>
-        </Card>
-
-        {/* Appearance Settings */}
-        <Card className="lg:col-span-2">
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Tampilan</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Warna Utama</label>
-              <div className="flex gap-2">
-                {['#4f46e5','#2563eb','#7c3aed','#0891b2','#059669','#d97706'].map(c => (
-                  <button 
-                    key={c} 
-                    onClick={() => handleUpdateField('primaryColor', c)}
-                    className={`w-8 h-8 rounded-lg border-2 shadow-sm transition-all ${settings.primaryColor === c ? 'border-indigo-600 scale-110 ring-2 ring-indigo-400' : 'border-white hover:scale-105'}`} 
-                    style={{backgroundColor:c}} 
-                  />
-                ))}
-              </div>
+            <div className="md:col-span-2">
+              <Select 
+                label="Timezone (Zona Waktu Sistem)" 
+                value={settings.timezone}
+                onChange={e => handleUpdateField('timezone', e.target.value)}
+                options={[
+                  { value: 'Asia/Jakarta', label: 'WIB - Waktu Indonesia Barat (UTC+7)' },
+                  { value: 'Asia/Makassar', label: 'WITA - Waktu Indonesia Tengah (UTC+8)' },
+                  { value: 'Asia/Jayapura', label: 'WIT - Waktu Indonesia Timur (UTC+9)' }
+                ]} 
+              />
+              <p className="text-xs text-slate-500 mt-1.5">
+                💡 <strong>Cara Kerja Timezone:</strong> Pengaturan ini menentukan rujukan zona waktu resmi untuk pencatatan dan validasi waktu mulai (startTime) serta waktu selesai (endTime) dari setiap sesi pemilihan (election) yang dibuat di seluruh platform.
+              </p>
             </div>
-            <Input 
-              label="Logo URL" 
-              placeholder="https://..." 
-              value={settings.logoUrl || ''} 
-              onChange={e => handleUpdateField('logoUrl', e.target.value)} 
-            />
-            <Input 
-              label="Favicon URL" 
-              placeholder="https://..." 
-              value={settings.faviconUrl || ''} 
-              onChange={e => handleUpdateField('faviconUrl', e.target.value)} 
-            />
           </div>
           <div className="mt-6">
             <Button onClick={handleSaveSettings} disabled={saving}>

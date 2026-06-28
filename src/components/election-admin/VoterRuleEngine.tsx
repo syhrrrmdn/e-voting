@@ -16,50 +16,24 @@ const operatorOptions: { value: RuleOperator; label: string }[] = [
 // --- Helper to build dynamic natural phrasing for checklist ---
 function getPhrase(field: string, operator: string, value: string, attrs: any[], cats: any[]): string {
   const val = String(value || '…');
-
-  if (field === 'category') {
-    const catLabel = cats.find(ct => ct.key === value)?.label || val;
-    if (operator === '=') return `Merupakan ${catLabel}`;
-    if (operator === '!=') return `Bukan ${catLabel}`;
-    return `Salah satu dari kategori ${val}`;
-  }
-
   const attr = attrs.find(a => a.key === field);
-  const fieldLabel = attr?.label || field;
+  const fieldLabel = field === 'category' ? 'Kategori Pengguna' : (attr?.label || field);
 
-  const keyLower = field.toLowerCase();
-  const labelLower = fieldLabel.toLowerCase();
+  let displayVal = val;
+  if (field === 'category') {
+    displayVal = cats.find(ct => ct.key === value)?.label || val;
+  }
 
   if (operator === '=') {
-    if (keyLower.includes('status') || labelLower.includes('status')) {
-      return `Berstatus ${val}`;
-    }
-    if (keyLower.includes('fakultas') || labelLower.includes('fakultas')) {
-      return `Berasal dari ${fieldLabel} ${val}`;
-    }
-    if (keyLower.includes('jurusan') || labelLower.includes('jurusan') || keyLower.includes('prodi') || labelLower.includes('prodi')) {
-      return `Dari ${fieldLabel} ${val}`;
-    }
-    if (keyLower.includes('angkatan') || labelLower.includes('angkatan')) {
-      return `Angkatan ${val}`;
-    }
-    if (keyLower.includes('divisi') || labelLower.includes('divisi') || keyLower.includes('departemen') || labelLower.includes('departemen')) {
-      return `Dari ${fieldLabel} ${val}`;
-    }
-    if (keyLower.includes('jabatan') || labelLower.includes('jabatan') || keyLower.includes('posisi') || labelLower.includes('posisi')) {
-      return `Menjabat sebagai ${val}`;
-    }
-    if (keyLower.includes('kota') || labelLower.includes('kota') || keyLower.includes('alamat') || labelLower.includes('alamat') || keyLower.includes('domisili') || labelLower.includes('domisili')) {
-      return `Berdomisili di ${val}`;
-    }
-    return `${fieldLabel}: ${val}`;
+    return `${fieldLabel}: ${displayVal}`;
   }
-
   if (operator === '!=') {
-    return `${fieldLabel} bukan ${val}`;
+    return `${fieldLabel} bukan ${displayVal}`;
   }
-
-  return `${fieldLabel} salah satu dari ${val}`;
+  if (operator === 'IN') {
+    return `${fieldLabel} salah satu dari: ${displayVal}`;
+  }
+  return `${fieldLabel}: ${displayVal}`;
 }
 
 // Build checklist items for preview
@@ -77,6 +51,202 @@ function buildChecklist(group: RuleGroup, attrs: any[], cats: any[]): string[] {
 
   return items;
 }
+
+// --- Condition Row Component (Outside to prevent losing focus) ---
+const ConditionRow = ({
+  cond,
+  gid,
+  attributeOptions,
+  operatorOptions,
+  categories,
+  attributes,
+  updCond,
+  rmCond,
+}: {
+  cond: RuleCondition;
+  gid: string;
+  attributeOptions: any[];
+  operatorOptions: any[];
+  categories: any[];
+  attributes: any[];
+  updCond: (gid: string, cid: string, u: Partial<RuleCondition>) => void;
+  rmCond: (gid: string, cid: string) => void;
+}) => {
+  const getValOpts = (field: string) => {
+    if (field === 'category') return categories.map(c => ({ value: c.key, label: c.label }));
+    const a = attributes.find(at => at.key === field);
+    if (a?.type === 'select' && a.options?.length > 0) return a.options.map((o: string) => ({ value: o, label: o }));
+    return null;
+  };
+
+  const opts = getValOpts(cond.field);
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm hover:shadow transition-shadow group">
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+        </span>
+        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kriteria Pemilih</span>
+        <div className="flex-1" />
+        <button onClick={() => rmCond(gid, cond.id)} title="Hapus kriteria ini"
+          className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <Select options={attributeOptions} value={cond.field}
+          onChange={e => updCond(gid, cond.id, { field: e.target.value, value: '' })} />
+        <Select options={operatorOptions} value={cond.operator}
+          onChange={e => updCond(gid, cond.id, { operator: e.target.value as RuleOperator })} />
+        {opts ? (
+          <Select options={[{ value: '', label: '— Pilih —' }, ...opts]} value={cond.value as string}
+            onChange={e => updCond(gid, cond.id, { value: e.target.value })} />
+        ) : (
+          <Input placeholder={cond.operator === 'IN' ? 'Contoh: 2022, 2023' : 'Masukkan nilai…'}
+            value={cond.value as string}
+            onChange={e => updCond(gid, cond.id, { value: e.target.value })} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- Group Component (Outside to prevent losing focus) ---
+const GroupBlock = ({
+  group,
+  parentId,
+  depth = 0,
+  attributeOptions,
+  operatorOptions,
+  categories,
+  attributes,
+  setLogic,
+  addCond,
+  updCond,
+  rmCond,
+  addGrp,
+  rmGrp,
+}: {
+  group: RuleGroup;
+  parentId?: string;
+  depth?: number;
+  attributeOptions: any[];
+  operatorOptions: any[];
+  categories: any[];
+  attributes: any[];
+  setLogic: (gid: string, logic: 'AND' | 'OR') => void;
+  addCond: (gid: string) => void;
+  updCond: (gid: string, cid: string, u: Partial<RuleCondition>) => void;
+  rmCond: (gid: string, cid: string) => void;
+  addGrp: (gid: string) => void;
+  rmGrp: (pid: string, cid: string) => void;
+}) => {
+  const isRoot = !parentId;
+  const empty = group.conditions.length === 0 && group.groups.length === 0;
+  const bgClass = depth % 2 === 0 ? 'bg-slate-50/70 border-slate-200' : 'bg-indigo-50/30 border-indigo-200';
+
+  return (
+    <div className={`border rounded-2xl p-4 sm:p-5 space-y-3 ${bgClass}`}>
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+            {isRoot ? 'Mode Pencocokan Aturan:' : 'Kelompok Pemilih:'}
+          </span>
+          <div className="flex rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+            <button onClick={() => setLogic(group.id, 'AND')}
+              className={`px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${group.logic === 'AND' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+              Semua kriteria harus terpenuhi
+            </button>
+            <button onClick={() => setLogic(group.id, 'OR')}
+              className={`px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${group.logic === 'OR' ? 'bg-amber-500 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+              Cukup salah satu kriteria terpenuhi
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => addCond(group.id)}>+ Tambahkan Kriteria</Button>
+          <Button variant="ghost" size="sm" onClick={() => addGrp(group.id)}>+ Kelompok Pemilih</Button>
+          {parentId && (
+            <button onClick={() => rmGrp(parentId, group.id)}
+              className="text-xs text-red-400 hover:text-red-600 font-semibold cursor-pointer px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">
+              Hapus
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Empty */}
+      {empty && (
+        <div className="text-center py-8 text-slate-400">
+          <svg className="w-12 h-12 mx-auto mb-3 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <p className="text-sm font-medium text-slate-500">Belum ada kriteria pemilih</p>
+          <p className="text-xs mt-1 text-slate-400">Klik <strong>&quot;+ Tambahkan Kriteria&quot;</strong> untuk menentukan siapa yang berhak memilih</p>
+        </div>
+      )}
+
+      {/* Conditions */}
+      {group.conditions.length > 0 && (
+        <div className="space-y-2">
+          {group.conditions.map((c, i) => (
+            <React.Fragment key={c.id}>
+              <ConditionRow
+                cond={c}
+                gid={group.id}
+                attributeOptions={attributeOptions}
+                operatorOptions={operatorOptions}
+                categories={categories}
+                attributes={attributes}
+                updCond={updCond}
+                rmCond={rmCond}
+              />
+              {i < group.conditions.length - 1 && (
+                <div className="flex justify-center">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest px-4 py-0.5 rounded-full ${group.logic === 'AND' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'}`}>
+                    {group.logic === 'AND' ? 'dan' : 'atau'}
+                  </span>
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+
+      {/* Connector */}
+      {group.conditions.length > 0 && group.groups.length > 0 && (
+        <div className="flex justify-center">
+          <span className={`text-[10px] font-bold uppercase tracking-widest px-4 py-0.5 rounded-full ${group.logic === 'AND' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'}`}>
+            {group.logic === 'AND' ? 'dan' : 'atau'}
+          </span>
+        </div>
+      )}
+
+      {/* Sub-groups */}
+      {group.groups.map(sub => (
+        <GroupBlock
+          key={sub.id}
+          group={sub}
+          parentId={group.id}
+          depth={depth + 1}
+          attributeOptions={attributeOptions}
+          operatorOptions={operatorOptions}
+          categories={categories}
+          attributes={attributes}
+          setLogic={setLogic}
+          addCond={addCond}
+          updCond={updCond}
+          rmCond={rmCond}
+          addGrp={addGrp}
+          rmGrp={rmGrp}
+        />
+      ))}
+    </div>
+  );
+};
 
 export default function VoterRuleEngine() {
   const [elections, setElections] = useState<any[]>([]);
@@ -160,133 +330,6 @@ export default function VoterRuleEngine() {
     finally { setSaving(false); }
   };
 
-  // Value dropdown options
-  const valOpts = (field: string) => {
-    if (field === 'category') return categories.map(c => ({ value: c.key, label: c.label }));
-    const a = attributes.find(at => at.key === field);
-    if (a?.type === 'select' && a.options?.length > 0) return a.options.map((o: string) => ({ value: o, label: o }));
-    return null;
-  };
-
-  // --- Condition Row Component ---
-  const ConditionRow = ({ cond, gid }: { cond: RuleCondition; gid: string }) => {
-    const opts = valOpts(cond.field);
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm hover:shadow transition-shadow group">
-        <div className="flex items-center gap-1.5 mb-2">
-          <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-          </span>
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kriteria Pemilih</span>
-          <div className="flex-1" />
-          <button onClick={() => rmCond(gid, cond.id)} title="Hapus kriteria ini"
-            className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <Select options={attributeOptions} value={cond.field}
-            onChange={e => updCond(gid, cond.id, { field: e.target.value, value: '' })} />
-          <Select options={operatorOptions} value={cond.operator}
-            onChange={e => updCond(gid, cond.id, { operator: e.target.value as RuleOperator })} />
-          {opts ? (
-            <Select options={[{ value: '', label: '— Pilih —' }, ...opts]} value={cond.value as string}
-              onChange={e => updCond(gid, cond.id, { value: e.target.value })} />
-          ) : (
-            <Input placeholder={cond.operator === 'IN' ? 'Contoh: 2022, 2023' : 'Masukkan nilai…'}
-              value={cond.value as string}
-              onChange={e => updCond(gid, cond.id, { value: e.target.value })} />
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // --- Group Component ---
-  const GroupBlock = ({ group, parentId, depth = 0 }: { group: RuleGroup; parentId?: string; depth?: number }) => {
-    const isRoot = !parentId;
-    const empty = group.conditions.length === 0 && group.groups.length === 0;
-    const bgClass = depth % 2 === 0 ? 'bg-slate-50/70 border-slate-200' : 'bg-indigo-50/30 border-indigo-200';
-
-    return (
-      <div className={`border rounded-2xl p-4 sm:p-5 space-y-3 ${bgClass}`}>
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-              {isRoot ? 'Mode Pencocokan Aturan:' : 'Kelompok Pemilih:'}
-            </span>
-            <div className="flex rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-              <button onClick={() => setLogic(group.id, 'AND')}
-                className={`px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${group.logic === 'AND' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
-                Semua kriteria harus terpenuhi
-              </button>
-              <button onClick={() => setLogic(group.id, 'OR')}
-                className={`px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${group.logic === 'OR' ? 'bg-amber-500 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
-                Cukup salah satu kriteria terpenuhi
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => addCond(group.id)}>+ Tambahkan Kriteria</Button>
-            <Button variant="ghost" size="sm" onClick={() => addGrp(group.id)}>+ Kelompok Pemilih</Button>
-            {parentId && (
-              <button onClick={() => rmGrp(parentId, group.id)}
-                className="text-xs text-red-400 hover:text-red-600 font-semibold cursor-pointer px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">
-                Hapus
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Empty */}
-        {empty && (
-          <div className="text-center py-8 text-slate-400">
-            <svg className="w-12 h-12 mx-auto mb-3 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <p className="text-sm font-medium text-slate-500">Belum ada kriteria pemilih</p>
-            <p className="text-xs mt-1 text-slate-400">Klik <strong>&quot;+ Tambahkan Kriteria&quot;</strong> untuk menentukan siapa yang berhak memilih</p>
-          </div>
-        )}
-
-        {/* Conditions */}
-        {group.conditions.length > 0 && (
-          <div className="space-y-2">
-            {group.conditions.map((c, i) => (
-              <React.Fragment key={c.id}>
-                <ConditionRow cond={c} gid={group.id} />
-                {i < group.conditions.length - 1 && (
-                  <div className="flex justify-center">
-                    <span className={`text-[10px] font-bold uppercase tracking-widest px-4 py-0.5 rounded-full ${group.logic === 'AND' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'}`}>
-                      {group.logic === 'AND' ? 'dan' : 'atau'}
-                    </span>
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-
-        {/* Connector */}
-        {group.conditions.length > 0 && group.groups.length > 0 && (
-          <div className="flex justify-center">
-            <span className={`text-[10px] font-bold uppercase tracking-widest px-4 py-0.5 rounded-full ${group.logic === 'AND' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'}`}>
-              {group.logic === 'AND' ? 'dan' : 'atau'}
-            </span>
-          </div>
-        )}
-
-        {/* Sub-groups */}
-        {group.groups.map(sub => (
-          <GroupBlock key={sub.id} group={sub} parentId={group.id} depth={depth + 1} />
-        ))}
-      </div>
-    );
-  };
-
   // --- Loading ---
   if (loading) {
     return (
@@ -343,7 +386,19 @@ export default function VoterRuleEngine() {
                   {saving ? 'Menyimpan…' : 'Simpan Pengaturan'}
                 </Button>
               </div>
-              <GroupBlock group={ruleGroup} />
+              <GroupBlock
+                group={ruleGroup}
+                attributeOptions={attributeOptions}
+                operatorOptions={operatorOptions}
+                categories={categories}
+                attributes={attributes}
+                setLogic={setLogic}
+                addCond={addCond}
+                updCond={updCond}
+                rmCond={rmCond}
+                addGrp={addGrp}
+                rmGrp={rmGrp}
+              />
             </Card>
           </div>
 
@@ -361,7 +416,7 @@ export default function VoterRuleEngine() {
                 <div className="space-y-4">
                   {/* Checklist */}
                   <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Pemilih yang memenuhi:</p>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Pemilih yang memenuhi syarat :</p>
                     <div className="space-y-1.5">
                       {checklist.map((item, i) => (
                         <div key={i} className="flex items-start gap-2 text-sm text-slate-700">

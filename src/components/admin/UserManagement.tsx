@@ -25,6 +25,7 @@ export default function UserManagement() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     role: 'voter' as UserRole,
     status: 'active' as 'active' | 'inactive'
   });
@@ -78,7 +79,7 @@ export default function UserManagement() {
 
   const handleOpenAdd = () => {
     setEditingUser(null);
-    setFormData({ name: '', email: '', role: 'voter', status: 'active' });
+    setFormData({ name: '', email: '', password: '', role: 'voter', status: 'active' });
     setFormModalOpen(true);
   };
 
@@ -87,6 +88,7 @@ export default function UserManagement() {
     setFormData({
       name: user.name,
       email: user.email,
+      password: '',
       role: user.role,
       status: user.status
     });
@@ -164,11 +166,26 @@ export default function UserManagement() {
     setResetModalOpen(true);
   };
 
-  const handleResetConfirm = () => {
+  const handleResetConfirm = async () => {
     if (!selectedUser) return;
-    showNotification(`Password untuk pengguna ${selectedUser.name} berhasil di-reset menjadi default.`);
-    setResetModalOpen(false);
-    setSelectedUser(null);
+    try {
+      const res = await fetch(`/api/users/${selectedUser._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: '123456' }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showNotification(`Password untuk pengguna ${selectedUser.name} berhasil di-reset menjadi "123456".`);
+      } else {
+        alert(json.message || 'Gagal reset password');
+      }
+    } catch (err) {
+      alert('Gagal menghubungkan ke server');
+    } finally {
+      setResetModalOpen(false);
+      setSelectedUser(null);
+    }
   };
 
   const columns: TableColumn<any>[] = [
@@ -330,6 +347,15 @@ export default function UserManagement() {
             onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
             disabled={!!editingUser}
           />
+          {!editingUser && (
+            <Input 
+              label="Kata Sandi (Opsional)" 
+              type="password" 
+              placeholder="Bila kosong, default: 123456" 
+              value={formData.password}
+              onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
+            />
+          )}
           <Select 
             label="Peran" 
             options={[
@@ -374,7 +400,7 @@ export default function UserManagement() {
             </div>
             <h4 className="font-bold text-slate-800 text-base">Reset Password Pengguna?</h4>
             <p className="text-sm text-slate-500">
-              Apakah Anda yakin ingin me-reset password untuk pengguna <strong>{selectedUser.name}</strong>? Password akan dikembalikan ke setelan default sistem.
+              Apakah Anda yakin ingin me-reset password untuk pengguna <strong>{selectedUser.name}</strong>? Password akan di-reset menjadi kata sandi default: <strong className="text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-mono">123456</strong>.
             </p>
           </div>
         </Modal>

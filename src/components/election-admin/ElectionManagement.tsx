@@ -180,8 +180,8 @@ export default function ElectionManagement({ onNavigate, onSelectElection }: { o
                     onClick={() => handleAction(e._id, 'results')}
                     className="text-center p-2 bg-slate-50 hover:bg-indigo-50/50 rounded-lg cursor-pointer transition-colors"
                   >
-                    <p className="text-lg font-bold text-slate-900">{e.totalVotes || 0}</p>
-                    <p className="text-xs text-slate-400">Suara</p>
+                    <p className="text-lg font-bold text-slate-900">{e.status === 'closed' ? (e.totalVotes || 0) : '🔒'}</p>
+                    <p className="text-xs text-slate-400">{e.status === 'closed' ? 'Suara' : 'Dikunci'}</p>
                   </div>
                   <div 
                     onClick={() => handleAction(e._id, 'rules')}

@@ -109,7 +109,7 @@ export default function AdminElectionManagement() {
       key: 'totalVotes', 
       label: 'Suara Masuk', 
       className: 'hidden lg:table-cell', 
-      render: (r) => <span className="font-semibold text-slate-700">{(r.totalVotes || 0).toLocaleString()}</span> 
+      render: (r) => <span className="font-semibold text-slate-700">{r.status === 'closed' ? (r.totalVotes || 0).toLocaleString() : '🔒 Dikunci'}</span> 
     },
     { 
       key: 'startTime', 
@@ -195,7 +195,7 @@ export default function AdminElectionManagement() {
               </div>
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <span className="text-xs font-semibold text-slate-400 uppercase">Total Partisipasi Suara</span>
-                <p className="text-xl font-bold text-slate-800 mt-0.5">{(selectedElection.totalVotes || 0).toLocaleString()} Suara</p>
+                <p className="text-xl font-bold text-slate-800 mt-0.5">{selectedElection.status === 'closed' ? `${(selectedElection.totalVotes || 0).toLocaleString()} Suara` : '🔒 Dikunci (Sesi Berlangsung)'}</p>
               </div>
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <span className="text-xs font-semibold text-slate-400 uppercase font-mono">Dibuat Oleh</span>
@@ -239,7 +239,11 @@ export default function AdminElectionManagement() {
                 </svg>
                 Hasil Perolehan Suara
               </h4>
-              {modalCandidates.length > 0 ? (
+              {selectedElection.status !== 'closed' ? (
+                <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 text-sm">
+                  🔒 Hasil perolehan suara kandidat dikunci sampai pemilihan ini resmi selesai (status CLOSED) untuk menjaga kerahasiaan &amp; netralitas pemilu.
+                </div>
+              ) : modalCandidates.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
                   <div className="flex justify-center p-4 border border-slate-100 rounded-xl bg-slate-50/50">
                     <PieChart data={modalCandidates.map(c => ({ label: c.name, value: c.voteCount || 0 }))} />

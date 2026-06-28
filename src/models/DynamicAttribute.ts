@@ -8,6 +8,7 @@ export interface IDynamicAttribute extends Document {
   required: boolean;
   applicableTo: string[]; // Array of category keys; empty [] = applies to ALL categories
   sentencePattern?: 'default' | 'origin' | 'from' | 'status' | 'direct' | 'title' | 'location';
+  deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +44,10 @@ const DynamicAttributeSchema: Schema<IDynamicAttribute> = new Schema(
     applicableTo: {
       type: [String], // Array of category keys; empty means ALL
       default: [],
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

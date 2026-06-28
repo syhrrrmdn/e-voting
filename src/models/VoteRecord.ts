@@ -36,7 +36,11 @@ const VoteRecordSchema: Schema<IVoteRecord> = new Schema(
 // Prevent double voting by creating a compound unique index on userId + electionId
 VoteRecordSchema.index({ userId: 1, electionId: 1 }, { unique: true });
 
+if (mongoose.models.VoteRecord) {
+  delete mongoose.models.VoteRecord;
+}
+
 const VoteRecord: Model<IVoteRecord> =
-  mongoose.models.VoteRecord || mongoose.model<IVoteRecord>('VoteRecord', VoteRecordSchema);
+  mongoose.model<IVoteRecord>('VoteRecord', VoteRecordSchema);
 
 export default VoteRecord;

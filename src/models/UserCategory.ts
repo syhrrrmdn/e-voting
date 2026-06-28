@@ -4,6 +4,7 @@ export interface IUserCategory extends Document {
   key: string;
   label: string;
   description: string;
+  deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,6 +27,10 @@ const UserCategorySchema: Schema<IUserCategory> = new Schema(
       type: String,
       default: '',
       trim: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

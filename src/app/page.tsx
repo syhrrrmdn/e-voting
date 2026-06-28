@@ -35,6 +35,26 @@ export default function Page() {
   const [role, setRole] = useState<UserRole>('voter');
   const [activePage, setActivePage] = useState<string>('dashboard');
   const [selectedElectionId, setSelectedElectionId] = useState<string>('');
+  const [settings, setSettings] = useState<any>(null);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then(json => {
+        if (json && json.success && json.data) {
+          setSettings(json.data);
+          // Update browser tab title dynamically
+          const name = json.data.appName || 'MudaVote';
+          const tag = json.data.tagline || 'Platform E-Voting Organisasi';
+          document.title = `${name} — ${tag}`;
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Enforce role-based access control (RBAC) client-side
   useEffect(() => {
@@ -112,7 +132,9 @@ export default function Page() {
           <div className="w-16 h-16 rounded-full border-4 border-t-indigo-500 border-r-cyan-400 border-b-indigo-500 border-l-cyan-400 animate-spin" />
         </div>
         <h2 className="mt-6 text-lg font-bold text-white tracking-wide">Memuat Sesi Pengguna...</h2>
-        <p className="mt-1.5 text-xs text-slate-400 font-medium">MudaVote E-Voting Platform</p>
+        <p className="mt-1.5 text-xs text-slate-400 font-medium">
+          {settings?.appName || 'MudaVote'} — {settings?.tagline || 'Platform E-Voting'}
+        </p>
       </div>
     );
   }

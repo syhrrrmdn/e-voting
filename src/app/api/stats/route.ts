@@ -24,10 +24,10 @@ export async function GET() {
       electionsByStatus,
       usersByRole,
     ] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ status: 'active' }),
-      Election.countDocuments(),
-      Election.countDocuments({ status: 'active' }),
+      User.countDocuments({ deletedAt: null }),
+      User.countDocuments({ status: 'active', deletedAt: null }),
+      Election.countDocuments({ deletedAt: null }),
+      Election.countDocuments({ status: 'active', deletedAt: null }),
       VoteRecord.countDocuments(),
       AuditLog.find().sort({ timestamp: -1 }).limit(10),
       Election.aggregate([

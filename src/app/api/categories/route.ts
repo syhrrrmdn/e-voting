@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { getAuthUser } from '@/lib/auth';
 import UserCategory from '@/models/UserCategory';
+import AuditLog from '@/models/AuditLog';
 
 // GET - Retrieve all user categories
 export async function GET() {
   try {
     await dbConnect();
-    const categories = await UserCategory.find({}).sort({ createdAt: 1 });
+    const categories = await UserCategory.find({ deletedAt: null }).sort({ createdAt: 1 });
     return NextResponse.json({ success: true, data: categories });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
@@ -16,7 +17,7 @@ export async function GET() {
 
 // POST - Create a new user category (admin only)
 export async function POST(request: Request) {
-  const { error } = await getAuthUser(['admin']);
+  const { error, user } = await getAuthUser(['admin']);
   if (error) return error;
 
   try {
@@ -43,6 +44,14 @@ export async function POST(request: Request) {
       key: key.toLowerCase().replace(/\s+/g, '_'),
       label,
       description: description || '',
+    });
+
+    await AuditLog.create({
+      userId: user!._id.toString(),
+      userName: user!.name,
+      action: 'TAMBAH_KATEGORI',
+      description: `Menambahkan kategori pengguna: "${category.label}"`,
+      resource: 'KATEGORI',
     });
 
     return NextResponse.json({ success: true, data: category }, { status: 201 });

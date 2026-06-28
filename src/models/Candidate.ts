@@ -6,6 +6,7 @@ export interface ICandidate extends Document {
   image: string; // Cloudinary secure URL
   electionId: mongoose.Types.ObjectId;
   voteCount: number;
+  deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +36,10 @@ const CandidateSchema: Schema<ICandidate> = new Schema(
       type: Number,
       default: 0,
       min: 0,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

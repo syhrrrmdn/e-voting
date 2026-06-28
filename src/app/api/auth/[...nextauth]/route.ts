@@ -1,5 +1,4 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
@@ -7,10 +6,6 @@ import crypto from 'crypto';
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || 'dummy',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy',
-    }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -22,7 +17,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email wajib diisi');
         }
         await dbConnect();
-        const user = await User.findOne({ email: credentials.email.toLowerCase().trim() });
+        const user = await User.findOne({ email: credentials.email.toLowerCase().trim(), deletedAt: null });
         if (!user) {
           throw new Error('Pengguna tidak ditemukan. Silakan gunakan email yang sudah di-seed atau daftar.');
         }
@@ -58,34 +53,6 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === 'google') {
-        try {
-          await dbConnect();
-          const existingUser = await User.findOne({ email: user.email });
-
-          if (!existingUser) {
-            // Auto-create new user as voter on first Google login
-            await User.create({
-              name: user.name || 'User Baru',
-              email: user.email || '',
-              avatar: user.image || '',
-              role: 'voter',
-              attributes: {},
-              status: 'active',
-            });
-          } else {
-            // Update avatar if changed
-            if (user.image && existingUser.avatar !== user.image) {
-              existingUser.avatar = user.image;
-              await existingUser.save();
-            }
-          }
-          return true;
-        } catch (error) {
-          console.error('SignIn callback error:', error);
-          return false;
-        }
-      }
       return true;
     },
 
@@ -93,7 +60,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         // First sign in - fetch from DB
         await dbConnect();
-        const dbUser = await User.findOne({ email: user.email });
+        const dbUser = await User.findOne({ email: user.email, deletedAt: null });
         if (dbUser) {
           token.id = dbUser._id.toString();
           token.role = dbUser.role;

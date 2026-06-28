@@ -10,6 +10,7 @@ export interface IElection extends Document {
   candidates: mongoose.Types.ObjectId[]; // References to Candidate documents
   rules: any; // RuleGroup logic tree (Schema.Types.Mixed)
   totalVotes: number;
+  deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,6 +63,10 @@ const ElectionSchema: Schema<IElection> = new Schema(
       type: Number,
       default: 0,
       min: 0,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

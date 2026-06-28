@@ -3,10 +3,11 @@ import dbConnect from '@/lib/mongodb';
 import { getAuthUser } from '@/lib/auth';
 import Candidate from '@/models/Candidate';
 import Election from '@/models/Election';
+import AuditLog from '@/models/AuditLog';
 
 // GET - Get candidates for an election
 export async function GET(request: Request) {
-  const { error } = await getAuthUser();
+  const { error, user } = await getAuthUser();
   if (error) return error;
 
   try {
@@ -14,11 +15,28 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const electionId = searchParams.get('electionId');
 
-    const filter: any = {};
+    const filter: any = { deletedAt: null };
     if (electionId) filter.electionId = electionId;
 
     const candidates = await Candidate.find(filter).sort({ createdAt: -1 });
-    return NextResponse.json({ success: true, data: candidates });
+
+    // Fetch election statuses to mask candidates belonging to open elections
+    const electionIds = Array.from(new Set(candidates.map(c => c.electionId.toString())));
+    const elections = await Election.find({ _id: { $in: electionIds } });
+    const closedMap: Record<string, boolean> = {};
+    elections.forEach(e => {
+      closedMap[e._id.toString()] = e.status === 'closed';
+    });
+
+    let formatted: any = candidates.map(c => {
+      const doc = c.toObject();
+      if (!closedMap[doc.electionId.toString()]) {
+        doc.voteCount = 0;
+      }
+      return doc;
+    });
+
+    return NextResponse.json({ success: true, data: formatted });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
@@ -26,7 +44,7 @@ export async function GET(request: Request) {
 
 // POST - Add candidate to an election
 export async function POST(request: Request) {
-  const { error } = await getAuthUser(['admin', 'election_admin']);
+  const { error, user } = await getAuthUser(['admin', 'election_admin']);
   if (error) return error;
 
   try {
@@ -41,7 +59,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const election = await Election.findById(electionId);
+    const election = await Election.findOne({ _id: electionId, deletedAt: null });
     if (!election) {
       return NextResponse.json(
         { success: false, message: 'Pemilihan tidak ditemukan.' },
@@ -67,6 +85,14 @@ export async function POST(request: Request) {
     // Add candidate ref to election
     election.candidates.push(candidate._id);
     await election.save();
+
+    await AuditLog.create({
+      userId: user!._id.toString(),
+      userName: user!.name,
+      action: 'TAMBAH_KANDIDAT',
+      description: `Menambahkan kandidat "${candidate.name}" pada pemilihan: "${election.title}"`,
+      resource: 'KANDIDAT',
+    });
 
     return NextResponse.json({ success: true, data: candidate }, { status: 201 });
   } catch (err: any) {

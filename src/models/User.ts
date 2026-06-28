@@ -10,6 +10,9 @@ export interface IUser extends Document {
   category: string; // Dynamic user category key (e.g. 'mahasiswa', 'dosen', 'staff')
   attributes: Record<string, string | number>;
   status: 'active' | 'inactive';
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
+  deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,6 +59,18 @@ const UserSchema: Schema<IUser> = new Schema(
       enum: ['active', 'inactive'],
       default: 'active',
     },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -66,6 +81,6 @@ if (mongoose.models.User) {
   delete mongoose.models.User;
 }
 
-const User: Model<IUser> = mongoose.model<IUser>('User', UserSchema);
+const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
 
 export default User;

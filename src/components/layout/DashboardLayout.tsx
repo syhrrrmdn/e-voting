@@ -175,13 +175,16 @@ export default function DashboardLayout({ role, activePage, onNavigate, onRoleCh
 
   useEffect(() => {
     fetch('/api/settings')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) return null;
+        return res.json();
+      })
       .then(json => {
-        if (json.success && json.data) {
+        if (json && json.success && json.data) {
           setSettings(json.data);
         }
       })
-      .catch(err => console.error('Gagal mengambil settings di layout:', err));
+      .catch(() => {});
   }, []);
 
   const isActualAdmin = actualRole === 'admin';

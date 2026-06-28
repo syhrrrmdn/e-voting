@@ -15,17 +15,27 @@ export default function Profile() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const [settings, setSettings] = useState<any>(null);
+
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const [meRes, attrRes, catRes] = await Promise.all([
+      const [meRes, attrRes, catRes, settingsRes] = await Promise.all([
         fetch('/api/me'),
         fetch('/api/attributes'),
-        fetch('/api/categories')
+        fetch('/api/categories'),
+        fetch('/api/settings').catch(() => null)
       ]);
       const meJson = await meRes.json();
       const attrJson = await attrRes.json();
       const catJson = await catRes.json();
+
+      if (settingsRes) {
+        const settingsJson = await settingsRes.json().catch(() => null);
+        if (settingsJson && settingsJson.success && settingsJson.data) {
+          setSettings(settingsJson.data);
+        }
+      }
 
       if (meJson.success && meJson.data) {
         setProfile(meJson.data);
@@ -293,7 +303,7 @@ export default function Profile() {
           </div>
 
           <div className="border-t border-slate-100 pt-4 mt-6 flex justify-between items-center text-xs text-slate-400">
-            <span>MudaVote E-Voting</span>
+            <span>{settings?.appName || 'MudaVote'} E-Voting</span>
             <Button 
               variant="ghost" 
               size="sm" 

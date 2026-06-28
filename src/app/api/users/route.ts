@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { getAuthUser } from '@/lib/auth';
 import User from '@/models/User';
+import AuditLog from '@/models/AuditLog';
 
 // GET - Retrieve all users (admin) or filtered list
 export async function GET(request: Request) {
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
 
-    const filter: any = {};
+    const filter: any = { deletedAt: null };
     if (role) filter.role = role;
     if (status) filter.status = status;
     if (search) {
@@ -46,13 +47,13 @@ export async function GET(request: Request) {
 
 // POST - Create a new user (admin only)
 export async function POST(request: Request) {
-  const { error } = await getAuthUser(['admin']);
+  const { error, user: authUser } = await getAuthUser(['admin']);
   if (error) return error;
 
   try {
     await dbConnect();
     const body = await request.json();
-    const { name, email, role, category, attributes, status, avatar } = body;
+    const { name, email, password, role, category, attributes, status, avatar } = body;
 
     if (!name || !email) {
       return NextResponse.json(
@@ -69,14 +70,27 @@ export async function POST(request: Request) {
       );
     }
 
+    const crypto = require('crypto');
+    const rawPassword = password || '123456';
+    const passwordHash = crypto.createHash('sha256').update(rawPassword).digest('hex');
+
     const user = await User.create({
       name,
       email: email.toLowerCase(),
+      passwordHash,
       role: role || 'voter',
       category: category || '',
       attributes: attributes || {},
       status: status || 'active',
       avatar: avatar || '',
+    });
+
+    await AuditLog.create({
+      userId: authUser!._id.toString(),
+      userName: authUser!.name,
+      action: 'TAMBAH_PENGGUNA',
+      description: `Menambahkan pengguna baru: "${user.name}" (${user.role})`,
+      resource: 'PENGGUNA',
     });
 
     return NextResponse.json({ success: true, data: user }, { status: 201 });

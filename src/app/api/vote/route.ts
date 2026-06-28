@@ -4,7 +4,6 @@ import { getAuthUser } from '@/lib/auth';
 import VoteRecord from '@/models/VoteRecord';
 import Candidate from '@/models/Candidate';
 import Election from '@/models/Election';
-import AuditLog from '@/models/AuditLog';
 import User from '@/models/User';
 import { checkEligibility } from '@/lib/ruleEngine';
 
@@ -25,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     // 1. Validate election exists and is active
-    const election = await Election.findById(electionId);
+    const election = await Election.findOne({ _id: electionId, deletedAt: null });
     if (!election) {
       return NextResponse.json({ success: false, message: 'Pemilihan tidak ditemukan.' }, { status: 404 });
     }
@@ -46,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Validate candidate belongs to this election
-    const candidate = await Candidate.findById(candidateId);
+    const candidate = await Candidate.findOne({ _id: candidateId, deletedAt: null });
     if (!candidate || candidate.electionId.toString() !== electionId) {
       return NextResponse.json(
         { success: false, message: 'Kandidat tidak valid untuk pemilihan ini.' },
@@ -80,24 +79,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Record the vote (anonymous - no candidateId stored to protect vote secrecy)
+    // 6. Record the vote
     await VoteRecord.create({
       userId: user!._id.toString(),
       electionId,
+      candidateId,
     });
 
     // 7. Increment candidate vote count and election total
     await Candidate.findByIdAndUpdate(candidateId, { $inc: { voteCount: 1 } });
     await Election.findByIdAndUpdate(electionId, { $inc: { totalVotes: 1 } });
 
-    // 8. Log audit
-    await AuditLog.create({
-      userId: user!._id.toString(),
-      userName: user!.name,
-      action: 'VOTE',
-      description: `Memberikan suara pada pemilihan: ${election.title}`,
-      resource: 'VOTE',
-    });
 
     return NextResponse.json({
       success: true,

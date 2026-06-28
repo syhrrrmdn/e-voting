@@ -7,6 +7,7 @@ export interface IAuditLog extends Document {
   description: string;
   timestamp: Date;
   resource: string;
+  details?: any;
 }
 
 const AuditLogSchema: Schema<IAuditLog> = new Schema(
@@ -39,11 +40,17 @@ const AuditLogSchema: Schema<IAuditLog> = new Schema(
       required: true,
       trim: true,
     },
+    details: {
+      type: Schema.Types.Mixed,
+      required: false,
+    },
   },
   {
     timestamps: false, // Using timestamp field explicitly
   }
 );
+
+delete mongoose.models.AuditLog;
 
 const AuditLog: Model<IAuditLog> =
   mongoose.models.AuditLog || mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);

@@ -17,7 +17,7 @@ export async function GET() {
 
   try {
     await dbConnect();
-    const user = await User.findOne({ email: session.user.email }).select('-passwordHash');
+    const user = await User.findOne({ email: session.user.email, deletedAt: null }).select('-passwordHash');
 
     if (!user) {
       return NextResponse.json(
