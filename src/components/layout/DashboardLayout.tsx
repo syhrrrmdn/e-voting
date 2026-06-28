@@ -1,6 +1,7 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { UserRole } from '@/types';
+import { useSession, signOut } from 'next-auth/react';
 
 // ── SVG Icons ──
 const Icons = {
@@ -25,30 +26,30 @@ const Icons = {
 interface MenuItem { key: string; label: string; icon: React.ReactNode; }
 
 const adminMenu: MenuItem[] = [
-  { key: 'dashboard', label: 'Dashboard Global', icon: Icons.dashboard },
-  { key: 'users', label: 'User Management', icon: Icons.users },
-  { key: 'instansi', label: 'Instansi Management', icon: Icons.building },
-  { key: 'attributes', label: 'Dynamic Attributes', icon: Icons.attr },
-  { key: 'elections', label: 'Election Management', icon: Icons.election },
-  { key: 'audit', label: 'Audit Logs', icon: Icons.audit },
-  { key: 'settings', label: 'System Settings', icon: Icons.settings },
+  { key: 'dashboard', label: 'Dashboard', icon: Icons.dashboard },
+  { key: 'users', label: 'Pengguna', icon: Icons.users },
+  { key: 'attributes', label: 'Atribut Dinamis', icon: Icons.attr },
+  { key: 'voter_data', label: 'Data Pemilih', icon: Icons.candidate },
+  { key: 'elections', label: 'Pemilihan', icon: Icons.election },
+  { key: 'audit', label: 'Log Audit', icon: Icons.audit },
+  { key: 'settings', label: 'Pengaturan Sistem', icon: Icons.settings },
 ];
 
 const electionAdminMenu: MenuItem[] = [
-  { key: 'dashboard', label: 'Dashboard Election', icon: Icons.dashboard },
-  { key: 'elections', label: 'Election Management', icon: Icons.election },
-  { key: 'candidates', label: 'Candidate Management', icon: Icons.candidate },
-  { key: 'rules', label: 'Voter Rule Engine', icon: Icons.rules },
-  { key: 'results', label: 'Result Dashboard', icon: Icons.result },
-  { key: 'audit', label: 'Audit Logs', icon: Icons.audit },
+  { key: 'dashboard', label: 'Dashboard Pemilihan', icon: Icons.dashboard },
+  { key: 'elections', label: 'Manajemen Pemilihan', icon: Icons.election },
+  { key: 'candidates', label: 'Manajemen Kandidat', icon: Icons.candidate },
+  { key: 'rules', label: 'Aturan Pemilih', icon: Icons.rules },
+  { key: 'results', label: 'Dashboard Hasil', icon: Icons.result },
+  { key: 'audit', label: 'Log Audit', icon: Icons.audit },
 ];
 
 const voterMenu: MenuItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: Icons.dashboard },
-  { key: 'elections', label: 'Available Elections', icon: Icons.election },
-  { key: 'voting', label: 'Voting', icon: Icons.vote },
-  { key: 'results', label: 'Results', icon: Icons.result },
-  { key: 'profile', label: 'Profile', icon: Icons.profile },
+  { key: 'elections', label: 'Pemilihan Tersedia', icon: Icons.election },
+  { key: 'voting', label: 'Pemungutan Suara', icon: Icons.vote },
+  { key: 'results', label: 'Hasil Pemilihan', icon: Icons.result },
+  { key: 'profile', label: 'Profil', icon: Icons.profile },
 ];
 
 const roleMenuMap: Record<UserRole, MenuItem[]> = {
@@ -60,7 +61,7 @@ const roleMenuMap: Record<UserRole, MenuItem[]> = {
 const roleLabelMap: Record<UserRole, string> = {
   admin: 'Admin Sistem',
   election_admin: 'Admin Pemilihan',
-  voter: 'Voter',
+  voter: 'Pemilih',
 };
 
 const roleColorMap: Record<UserRole, string> = {
@@ -70,9 +71,19 @@ const roleColorMap: Record<UserRole, string> = {
 };
 
 // ── Sidebar Component ──
-function Sidebar({ role, activePage, onNavigate, mobileOpen, onCloseMobile }: {
-  role: UserRole; activePage: string; onNavigate: (p: string) => void; mobileOpen: boolean; onCloseMobile: () => void;
+function Sidebar({ role, activePage, onNavigate, mobileOpen, onCloseMobile, settings }: {
+  role: UserRole; activePage: string; onNavigate: (p: string) => void; mobileOpen: boolean; onCloseMobile: () => void; settings: any;
 }) {
+  const { data: session } = useSession();
+  const userName = session?.user?.name || 'User';
+  const userEmail = session?.user?.email || '';
+  const userAvatar = session?.user?.image;
+  const userInitials = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'US';
+
+  const appName = settings?.appName || 'MudaVote';
+  const tagline = settings?.tagline || 'E-Voting Platform';
+  const logoInitials = appName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'MV';
+
   const menu = roleMenuMap[role];
   return (
     <>
@@ -84,10 +95,12 @@ function Sidebar({ role, activePage, onNavigate, mobileOpen, onCloseMobile }: {
             onClick={() => { onNavigate('dashboard'); onCloseMobile(); }}
             className="flex items-center gap-3 cursor-pointer flex-1"
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm">MV</div>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm">
+              {logoInitials}
+            </div>
             <div>
-              <h1 className="text-white font-bold text-sm tracking-tight">MudaVote</h1>
-              <p className="text-slate-400 text-[10px]">E-Voting Platform</p>
+              <h1 className="text-white font-bold text-sm tracking-tight">{appName}</h1>
+              <p className="text-slate-400 text-[10px] truncate max-w-[140px]">{tagline}</p>
             </div>
           </div>
           <button onClick={onCloseMobile} className="ml-auto lg:hidden text-slate-400 hover:text-white">{Icons.close}</button>
@@ -116,14 +129,29 @@ function Sidebar({ role, activePage, onNavigate, mobileOpen, onCloseMobile }: {
           })}
         </nav>
         {/* User info */}
-        <div className="px-4 py-4 border-t border-slate-800">
+        <div className="px-4 py-4 border-t border-slate-800 flex flex-col gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center text-white text-xs font-bold">AP</div>
+            {userAvatar ? (
+              <img src={userAvatar} alt={userName} className="w-9 h-9 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {userInitials}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">Andi Prasetyo</p>
-              <p className="text-xs text-slate-400 truncate">andi@umn.ac.id</p>
+              <p className="text-sm font-medium text-white truncate">{userName}</p>
+              <p className="text-xs text-slate-400 truncate">{userEmail}</p>
             </div>
           </div>
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700/80 transition-colors cursor-pointer"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Keluar</span>
+          </button>
         </div>
       </aside>
     </>
@@ -134,12 +162,32 @@ function Sidebar({ role, activePage, onNavigate, mobileOpen, onCloseMobile }: {
 export default function DashboardLayout({ role, activePage, onNavigate, onRoleChange, children }: {
   role: UserRole; activePage: string; onNavigate: (p: string) => void; onRoleChange: (r: UserRole) => void; children: React.ReactNode;
 }) {
+  const { data: session } = useSession();
+  const actualRole = (session?.user as any)?.role as UserRole;
+  const userName = session?.user?.name || 'User';
+  const userAvatar = session?.user?.image;
+  const userInitials = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'US';
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [roleDropdown, setRoleDropdown] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
   const menu = roleMenuMap[role];
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          setSettings(json.data);
+        }
+      })
+      .catch(err => console.error('Gagal mengambil settings di layout:', err));
+  }, []);
+
+  const isActualAdmin = actualRole === 'admin';
   return (
     <div className="min-h-screen bg-slate-50">
-      <Sidebar role={role} activePage={activePage} onNavigate={onNavigate} mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
+      <Sidebar role={role} activePage={activePage} onNavigate={onNavigate} mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} settings={settings} />
       {/* Main */}
       <div className="lg:pl-64 flex flex-col min-h-screen">
         {/* Top bar */}
@@ -163,31 +211,40 @@ export default function DashboardLayout({ role, activePage, onNavigate, onRoleCh
           </nav>
           
           <div className="flex-1" />
-          {/* Role Switcher */}
+          {/* Role Badge (Switcher if Admin) */}
           <div className="relative">
-            <button onClick={() => setRoleDropdown(!roleDropdown)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-              <span className={`w-2 h-2 rounded-full ${roleColorMap[role]}`} />
-              {roleLabelMap[role]}
-              <svg className={`w-4 h-4 text-slate-400 transition-transform ${roleDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {roleDropdown && (
+            {isActualAdmin ? (
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setRoleDropdown(false)} />
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-slate-200 shadow-xl py-2 z-40 animate-scale-in">
-                  <p className="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Switch Role</p>
-                  {(['admin','election_admin','voter'] as UserRole[]).map(r => (
-                    <button key={r} onClick={() => { onRoleChange(r); setRoleDropdown(false); }}
-                      className={`flex items-center gap-3 w-full px-3 py-2.5 text-sm transition-colors ${role===r?'bg-indigo-50 text-indigo-700 font-medium':'text-slate-600 hover:bg-slate-50'}`}>
-                      <span className={`w-2.5 h-2.5 rounded-full ${roleColorMap[r]}`} />
-                      {roleLabelMap[r]}
-                      {role===r && <svg className="w-4 h-4 ml-auto text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                    </button>
-                  ))}
-                </div>
+                <button onClick={() => setRoleDropdown(!roleDropdown)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
+                  <span className={`w-2 h-2 rounded-full ${roleColorMap[role]}`} />
+                  {roleLabelMap[role]}
+                  <svg className={`w-4 h-4 text-slate-400 transition-transform ${roleDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {roleDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setRoleDropdown(false)} />
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-slate-200 shadow-xl py-2 z-40 animate-scale-in">
+                      <p className="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Ganti Peran</p>
+                      {(['admin','election_admin','voter'] as UserRole[]).map(r => (
+                        <button key={r} onClick={() => { onRoleChange(r); setRoleDropdown(false); }}
+                          className={`flex items-center gap-3 w-full px-3 py-2.5 text-sm transition-colors cursor-pointer ${role===r?'bg-indigo-50 text-indigo-700 font-medium':'text-slate-600 hover:bg-slate-50'}`}>
+                          <span className={`w-2.5 h-2.5 rounded-full ${roleColorMap[r]}`} />
+                          {roleLabelMap[r]}
+                          {role===r && <svg className="w-4 h-4 ml-auto text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-100 bg-slate-50 text-sm font-medium text-slate-600">
+                <span className={`w-2 h-2 rounded-full ${roleColorMap[role]}`} />
+                {roleLabelMap[role]}
+              </div>
             )}
           </div>
           {/* Notification bell */}
@@ -195,45 +252,63 @@ export default function DashboardLayout({ role, activePage, onNavigate, onRoleCh
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
           </button>
+          {/* Logout Icon */}
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer"
+            title="Keluar"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
           {/* Avatar */}
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center text-white text-xs font-bold">AP</div>
+          {userAvatar ? (
+            <img src={userAvatar} alt={userName} className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {userInitials}
+            </div>
+          )}
         </header>
         {/* Page */}
         <main className="flex-1 p-4 lg:p-8">{children}</main>
       </div>
 
       {/* Floating Demo Mode / Role Switcher Panel */}
-      <div className="fixed bottom-4 right-4 z-50 bg-white/95 border border-slate-200/90 shadow-2xl rounded-2xl p-3.5 flex flex-col gap-2 max-w-sm glass animate-fade-in">
-        <div className="flex items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-            </span>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Demo Sandbox</span>
+      {isActualAdmin && (
+        <div className="fixed bottom-4 right-4 z-50 bg-white/95 border border-slate-200/90 shadow-2xl rounded-2xl p-3.5 flex flex-col gap-2 max-w-sm glass animate-fade-in">
+          <div className="flex items-center justify-between gap-6">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+              </span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Demo Sandbox</span>
+            </div>
+            <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-semibold">Ganti Peran</span>
           </div>
-          <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-semibold">Switch Role</span>
+          <div className="flex gap-1.5 mt-0.5">
+            {(['admin', 'election_admin', 'voter'] as UserRole[]).map((r) => (
+              <button
+                key={r}
+                onClick={() => onRoleChange(r)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all duration-200 ${
+                  role === r
+                    ? r === 'admin'
+                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-100'
+                      : r === 'election_admin'
+                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-100'
+                      : 'bg-cyan-600 text-white shadow-sm shadow-cyan-100'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {roleLabelMap[r]}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-1.5 mt-0.5">
-          {(['admin', 'election_admin', 'voter'] as UserRole[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => onRoleChange(r)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all duration-200 ${
-                role === r
-                  ? r === 'admin'
-                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-100'
-                    : r === 'election_admin'
-                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-100'
-                    : 'bg-cyan-600 text-white shadow-sm shadow-cyan-100'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {roleLabelMap[r]}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

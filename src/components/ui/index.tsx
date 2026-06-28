@@ -3,7 +3,7 @@
 import React from 'react';
 
 /* ==================================================================
-   REUSABLE UI COMPONENTS — E-Voting Multi-Instansi
+   REUSABLE UI COMPONENTS — E-Voting System
    All Tailwind CSS, no external UI library
    ================================================================== */
 
@@ -338,9 +338,9 @@ export function Table<T extends { id: string }>({
               </td>
             </tr>
           ) : (
-            data.map((row) => (
+            data.map((row, idx) => (
               <tr
-                key={row.id}
+                key={String((row as any).id || (row as any)._id || idx)}
                 onClick={() => onRowClick?.(row)}
                 className={`transition-colors ${
                   onRowClick
@@ -467,17 +467,42 @@ export function Input({
   label,
   ...props
 }: { label?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const isDateTime = props.type === 'datetime-local' || props.type === 'date';
+
   return (
-    <div>
+    <div className="w-full">
       {label && (
         <label className="block text-sm font-medium text-slate-700 mb-1.5">
           {label}
         </label>
       )}
-      <input
-        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-colors"
-        {...props}
-      />
+      <div className="relative">
+        <input
+          className={`w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-colors ${
+            isDateTime 
+              ? 'cursor-pointer pr-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer' 
+              : ''
+          }`}
+          onClick={(e) => {
+            if (isDateTime) {
+              try {
+                e.currentTarget.showPicker?.();
+              } catch (err) {
+                console.warn('showPicker not supported:', err);
+              }
+            }
+            props.onClick?.(e);
+          }}
+          {...props}
+        />
+        {isDateTime && (
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -610,10 +635,12 @@ export function Avatar({
   name,
   size = 'md',
   color,
+  src,
 }: {
   name: string;
   size?: 'sm' | 'md' | 'lg';
   color?: string;
+  src?: string;
 }) {
   const initials = name
     .split(' ')
@@ -622,7 +649,11 @@ export function Avatar({
     .join('')
     .toUpperCase();
 
-  const sizeMap = { sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-12 h-12 text-base' };
+  const sizeMap = { 
+    sm: 'w-8 h-8 text-xs', 
+    md: 'w-10 h-10 text-sm', 
+    lg: 'w-12 h-12 text-base' 
+  };
 
   const colors = [
     'bg-indigo-100 text-indigo-700',
@@ -635,6 +666,16 @@ export function Avatar({
   ];
 
   const idx = name.charCodeAt(0) % colors.length;
+
+  if (src && src.trim() !== '') {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className={`${sizeMap[size]} rounded-full object-cover shrink-0`}
+      />
+    );
+  }
 
   return (
     <div
@@ -688,6 +729,138 @@ export function PageHeader({
         {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// PAGINATION
+// ──────────────────────────────────────────────
+export function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  totalItems,
+  limit = 50,
+  onLimitChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  totalItems?: number;
+  limit?: number;
+  onLimitChange?: (limit: number) => void;
+}) {
+  if (totalPages <= 0 || (totalItems !== undefined && totalItems === 0)) return null;
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const delta = 2; // Number of pages to show before and after current page
+    const left = currentPage - delta;
+    const right = currentPage + delta + 1;
+    let range = [];
+    let l;
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= left && i < right)) {
+        range.push(i);
+      }
+    }
+
+    for (const i of range) {
+      if (l) {
+        if (i - l === 2) {
+          pages.push(l + 1);
+        } else if (i - l !== 1) {
+          pages.push('...');
+        }
+      }
+      pages.push(i);
+      l = i;
+    }
+    return pages;
+  };
+
+  const pages = getPageNumbers();
+  const startItem = (currentPage - 1) * limit + 1;
+  const endItem = Math.min(currentPage * limit, totalItems || 0);
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t border-slate-100 mt-4">
+      <div className="flex items-center gap-3">
+        {onLimitChange && (
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span>Tampilkan</span>
+            <select
+              value={limit}
+              onChange={(e) => onLimitChange(Number(e.target.value))}
+              className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 text-xs font-semibold cursor-pointer"
+            >
+              {[10, 20, 50, 100].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+            <span>data</span>
+          </div>
+        )}
+        {totalItems !== undefined ? (
+          <p className="text-xs text-slate-500">
+            Menampilkan <span className="font-semibold text-slate-800">{startItem}</span> hingga{' '}
+            <span className="font-semibold text-slate-800">{endItem}</span> dari{' '}
+            <span className="font-semibold text-slate-800">{totalItems}</span> data
+          </p>
+        ) : (
+          <p className="text-xs text-slate-500">
+            Halaman <span className="font-semibold text-slate-800">{currentPage}</span> dari{' '}
+            <span className="font-semibold text-slate-800">{totalPages}</span>
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 ml-auto">
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-slate-600 flex items-center gap-1 cursor-pointer"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Sebelumnya
+        </button>
+
+        {pages.map((p, idx) => (
+          <button
+            key={idx}
+            type="button"
+            disabled={p === '...'}
+            onClick={() => typeof p === 'number' && onPageChange(p)}
+            className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all ${
+              p === currentPage
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10'
+                : p === '...'
+                ? 'text-slate-400 cursor-default'
+                : 'text-slate-600 border border-slate-200 hover:bg-slate-50 cursor-pointer'
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-slate-600 flex items-center gap-1 cursor-pointer"
+        >
+          Berikutnya
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }

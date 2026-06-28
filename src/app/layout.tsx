@@ -9,10 +9,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MudaVote — E-Voting Multi-Instansi",
+  title: "MudaVote — Platform E-Voting Organisasi",
   description:
-    "Platform e-voting multi-instansi dengan role-based access control dan rule engine dinamis.",
+    "Platform e-voting organisasi dengan role-based access control dan rule engine dinamis.",
 };
+
+import { Providers } from "./providers";
 
 export default function RootLayout({
   children,
@@ -22,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col font-[var(--font-inter)] antialiased bg-[var(--background)] text-[var(--foreground)]">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

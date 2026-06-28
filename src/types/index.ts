@@ -1,5 +1,5 @@
 // ============================================================
-// E-Voting Multi-Instansi - Type Definitions
+// E-Voting System - Type Definitions
 // ============================================================
 
 export type UserRole = 'admin' | 'election_admin' | 'voter';
@@ -9,23 +9,10 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  instansiId: string;
-  instansiName: string;
   avatar?: string;
   attributes: Record<string, string | number>;
   createdAt: string;
   status: 'active' | 'inactive';
-}
-
-export interface Instansi {
-  id: string;
-  name: string;
-  code: string;
-  type: string;
-  userCount: number;
-  electionCount: number;
-  status: 'active' | 'inactive';
-  createdAt: string;
 }
 
 export interface DynamicAttribute {
@@ -67,8 +54,7 @@ export interface Election {
   id: string;
   title: string;
   description: string;
-  instansiId: string;
-  instansiName: string;
+  createdBy: string;
   startTime: string;
   endTime: string;
   status: 'draft' | 'published' | 'active' | 'closed';
@@ -92,15 +78,15 @@ export interface VoteRecord {
   id: string;
   userId: string;
   electionId: string;
-  candidateId: string;
+  candidateId?: string;
   timestamp: string;
 }
 
 export type AdminPage =
   | 'dashboard'
   | 'users'
-  | 'instansi'
   | 'attributes'
+  | 'voter_data'
   | 'elections'
   | 'audit'
   | 'settings';

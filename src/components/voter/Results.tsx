@@ -1,12 +1,52 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Badge } from '@/components/ui';
 import { PieChart, BarChart } from '@/components/ui/Charts';
-import { dummyCandidates, dummyElections } from '@/data/dummy';
 
 export default function Results() {
-  const closedElections = dummyElections.filter(e => e.status === 'closed');
-  const activeElections = dummyElections.filter(e => e.status === 'active');
+  const [elections, setElections] = useState<any[]>([]);
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [electionsRes, candidatesRes] = await Promise.all([
+        fetch('/api/elections'),
+        fetch('/api/candidates')
+      ]);
+
+      const electionsJson = await electionsRes.json();
+      const candidatesJson = await candidatesRes.json();
+
+      if (electionsJson.success && electionsJson.data) {
+        setElections(electionsJson.data);
+      }
+      if (candidatesJson.success && candidatesJson.data) {
+        setCandidates(candidatesJson.data);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil hasil pemilihan:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="py-12 flex flex-col items-center justify-center text-slate-500">
+        <div className="w-8 h-8 rounded-full border-2 border-t-indigo-600 border-slate-200 animate-spin mb-3" />
+        <p className="text-sm font-medium">Memuat hasil pemilihan...</p>
+      </div>
+    );
+  }
+
+  const closedElections = elections.filter(e => e.status === 'closed');
+  const activeElections = elections.filter(e => e.status === 'active');
 
   return (
     <div className="space-y-6">
@@ -22,11 +62,11 @@ export default function Results() {
       ) : (
         <div className="space-y-8">
           {closedElections.map(election => {
-            const candidates = dummyCandidates.filter(c => c.electionId === election.id);
-            const totalVotes = candidates.reduce((s, c) => s + c.voteCount, 0);
+            const electionCandidates = candidates.filter(c => c.electionId === election._id);
+            const totalVotes = electionCandidates.reduce((s, c) => s + (c.voteCount || 0), 0);
             
             return (
-              <Card key={election.id} className="space-y-6">
+              <Card key={election._id} className="space-y-6">
                 <div className="flex flex-wrap justify-between items-start gap-3 border-b border-slate-100 pb-4">
                   <div>
                     <Badge color="gray">Selesai</Badge>
@@ -42,10 +82,10 @@ export default function Results() {
                 {totalVotes > 0 ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
                     <div className="flex justify-center py-2">
-                      <PieChart data={candidates.map(c => ({ label: c.name, value: c.voteCount }))} />
+                      <PieChart data={electionCandidates.map(c => ({ label: c.name, value: c.voteCount || 0 }))} />
                     </div>
                     <div className="py-2">
-                      <BarChart data={candidates.map(c => ({ label: c.name, value: c.voteCount }))} />
+                      <BarChart data={electionCandidates.map(c => ({ label: c.name, value: c.voteCount || 0 }))} />
                     </div>
                   </div>
                 ) : (
@@ -63,7 +103,7 @@ export default function Results() {
               </p>
               <div className="space-y-2">
                 {activeElections.map(e => (
-                  <div key={e.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg text-sm">
+                  <div key={e._id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg text-sm">
                     <span className="font-semibold text-slate-700">{e.title}</span>
                     <Badge color="indigo">Dalam Proses</Badge>
                   </div>

@@ -1,12 +1,12 @@
 'use client';
 import React from 'react';
 
-export function BarChart({ data, height = 240 }: { data: { label: string; value: number; color?: string }[]; height?: number }) {
+export function BarChart({ data, height = 180 }: { data: { label: string; value: number; color?: string }[]; height?: number }) {
   const max = Math.max(...data.map((d) => d.value), 1);
   const barW = Math.min(48, Math.floor(600 / data.length) - 16);
   const colors = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6'];
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full max-w-lg mx-auto overflow-x-auto">
       <svg viewBox={`0 0 ${Math.max(data.length*(barW+24)+40,300)} ${height+40}`} className="w-full" style={{minWidth:data.length*(barW+24)+40}}>
         {[0,0.25,0.5,0.75,1].map(p=>(
           <g key={p}>
@@ -45,7 +45,7 @@ export function PieChart({ data, size=200, donut=true }: { data:{label:string;va
     return {path,color:d.color||colors[i%colors.length],label:d.label,value:d.value,pct:((d.value/total)*100).toFixed(1)};
   });
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-6">
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
       <svg width={size} height={size} className="shrink-0">
         {slices.map((s,i)=><path key={i} d={s.path} fill={s.color} className="transition-all duration-300 hover:opacity-80" stroke="white" strokeWidth={2}/>)}
         {donut&&<text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" className="fill-slate-900" fontSize="20" fontWeight="700">{total}</text>}
