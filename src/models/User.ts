@@ -1,7 +1,9 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import { BaseModel } from '@/lib/db';
 import { UserRole } from '@/types';
 
-export interface IUser extends Document {
+export interface IUser {
+  _id: string;
+  id: string;
   name: string;
   email: string;
   passwordHash?: string; // Optional password hash for secure login
@@ -11,76 +13,11 @@ export interface IUser extends Document {
   attributes: Record<string, string | number>;
   status: 'active' | 'inactive';
   resetPasswordToken?: string;
-  resetPasswordExpires?: Date;
-  deletedAt?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  resetPasswordExpires?: Date | string;
+  deletedAt?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
-const UserSchema: Schema<IUser> = new Schema(
-  {
-    name: {
-      type: String,
-      required: [true, 'Nama lengkap harus diisi'],
-      trim: true,
-    },
-    email: {
-      type: String,
-      required: [true, 'Email harus diisi'],
-      unique: true,
-      trim: true,
-      lowercase: true,
-      match: [/^\S+@\S+\.\S+$/, 'Format email tidak valid'],
-    },
-    passwordHash: {
-      type: String,
-    },
-    role: {
-      type: String,
-      enum: ['admin', 'election_admin', 'voter'],
-      default: 'voter',
-    },
-    avatar: {
-      type: String, // Cloudinary image URL
-      default: '',
-    },
-    category: {
-      type: String, // Dynamic category key
-      default: '',
-      trim: true,
-      lowercase: true,
-    },
-    attributes: {
-      type: Schema.Types.Mixed, // Flexible key-value dynamic attributes
-      default: {},
-    },
-    status: {
-      type: String,
-      enum: ['active', 'inactive'],
-      default: 'active',
-    },
-    resetPasswordToken: {
-      type: String,
-      default: null,
-    },
-    resetPasswordExpires: {
-      type: Date,
-      default: null,
-    },
-    deletedAt: {
-      type: Date,
-      default: null,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-if (mongoose.models.User) {
-  delete mongoose.models.User;
-}
-
-const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
-
+const User = new BaseModel('User');
 export default User;

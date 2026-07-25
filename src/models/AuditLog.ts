@@ -1,58 +1,16 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import { BaseModel } from '@/lib/db';
 
-export interface IAuditLog extends Document {
+export interface IAuditLog {
+  _id: string;
+  id: string;
   userId: string;
   userName: string;
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'VOTE' | 'PUBLISH' | string;
   description: string;
-  timestamp: Date;
+  timestamp: Date | string;
   resource: string;
   details?: any;
 }
 
-const AuditLogSchema: Schema<IAuditLog> = new Schema(
-  {
-    userId: {
-      type: String,
-      required: true,
-    },
-    userName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    action: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    description: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    timestamp: {
-      type: Date,
-      default: Date.now,
-    },
-    resource: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    details: {
-      type: Schema.Types.Mixed,
-      required: false,
-    },
-  },
-  {
-    timestamps: false, // Using timestamp field explicitly
-  }
-);
-
-delete mongoose.models.AuditLog;
-
-const AuditLog: Model<IAuditLog> =
-  mongoose.models.AuditLog || mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);
-
+const AuditLog = new BaseModel('AuditLog');
 export default AuditLog;

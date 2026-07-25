@@ -1,45 +1,15 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import { BaseModel } from '@/lib/db';
 
-export interface IUserCategory extends Document {
+export interface IUserCategory {
+  _id: string;
+  id: string;
   key: string;
   label: string;
   description: string;
-  deletedAt?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  deletedAt?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
-const UserCategorySchema: Schema<IUserCategory> = new Schema(
-  {
-    key: {
-      type: String,
-      required: [true, 'Key kategori harus diisi'],
-      unique: true,
-      trim: true,
-      lowercase: true,
-    },
-    label: {
-      type: String,
-      required: [true, 'Label kategori harus diisi'],
-      trim: true,
-    },
-    description: {
-      type: String,
-      default: '',
-      trim: true,
-    },
-    deletedAt: {
-      type: Date,
-      default: null,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-const UserCategory: Model<IUserCategory> =
-  mongoose.models.UserCategory ||
-  mongoose.model<IUserCategory>('UserCategory', UserCategorySchema);
-
+const UserCategory = new BaseModel('UserCategory');
 export default UserCategory;

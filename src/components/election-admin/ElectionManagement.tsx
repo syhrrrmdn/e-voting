@@ -1,13 +1,17 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Badge, Button, Modal, Input, Textarea, Toggle } from '@/components/ui';
+import ElectionReportModal from '@/components/ui/ElectionReportModal';
 
 const statusColor = (s: string) => s==='active'?'green':s==='published'?'indigo':s==='draft'?'yellow':'gray';
 
 export default function ElectionManagement({ onNavigate, onSelectElection }: { onNavigate?: (p: string) => void; onSelectElection?: (id: string) => void }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [elections, setElections] = useState<any[]>([]);
+  const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPrintElection, setSelectedPrintElection] = useState<any>(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -22,10 +26,18 @@ export default function ElectionManagement({ onNavigate, onSelectElection }: { o
   const fetchElections = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/elections');
-      const json = await res.json();
-      if (json.success && json.data) {
-        setElections(json.data);
+      const [electionsRes, candidatesRes] = await Promise.all([
+        fetch('/api/elections'),
+        fetch('/api/candidates'),
+      ]);
+      const electionsJson = await electionsRes.json();
+      const candidatesJson = await candidatesRes.json();
+
+      if (electionsJson.success && electionsJson.data) {
+        setElections(electionsJson.data);
+      }
+      if (candidatesJson.success && candidatesJson.data) {
+        setCandidates(candidatesJson.data);
       }
     } catch (err) {
       console.error('Gagal mengambil data pemilihan:', err);
@@ -208,6 +220,15 @@ export default function ElectionManagement({ onNavigate, onSelectElection }: { o
                 {e.status === 'active' && (
                   <Button variant="danger" size="sm" onClick={() => handleUpdateStatus(e._id, 'closed')}>Tutup Pemilu</Button>
                 )}
+                {e.status === 'closed' && (
+                  <Button variant="primary" size="sm" onClick={() => { setSelectedPrintElection(e); setReportModalOpen(true); }} icon={
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                  }>
+                    Cetak PDF
+                  </Button>
+                )}
               </div>
             </Card>
           ))}
@@ -261,6 +282,16 @@ export default function ElectionManagement({ onNavigate, onSelectElection }: { o
           />
         </div>
       </Modal>
+
+      {selectedPrintElection && (
+        <ElectionReportModal
+          open={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          election={selectedPrintElection}
+          candidates={candidates}
+        />
+      )}
     </div>
   );
 }
+

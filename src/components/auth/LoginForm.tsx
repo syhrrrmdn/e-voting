@@ -80,6 +80,7 @@ export default function LoginForm() {
     try {
       const result = await signIn('credentials', {
         email: demoEmail,
+        password: 'password123',
         redirect: false,
       });
 

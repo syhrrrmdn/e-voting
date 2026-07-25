@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '@/lib/dbConnect';
 import { getAuthUser } from '@/lib/auth';
 import DynamicAttribute from '@/models/DynamicAttribute';
 import AuditLog from '@/models/AuditLog';

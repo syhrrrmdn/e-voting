@@ -1,53 +1,17 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import { BaseModel } from '@/lib/db';
 
-export interface ICandidate extends Document {
+export interface ICandidate {
+  _id: string;
+  id: string;
   name: string;
   description: string;
   image: string; // Cloudinary secure URL
-  electionId: mongoose.Types.ObjectId;
+  electionId: string;
   voteCount: number;
-  deletedAt?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  deletedAt?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
-const CandidateSchema: Schema<ICandidate> = new Schema(
-  {
-    name: {
-      type: String,
-      required: [true, 'Nama kandidat harus diisi'],
-      trim: true,
-    },
-    description: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    image: {
-      type: String, // Cloudinary secure URL
-      default: '',
-    },
-    electionId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Election',
-      required: [true, 'ID Pemilihan harus dikaitkan'],
-    },
-    voteCount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    deletedAt: {
-      type: Date,
-      default: null,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-const Candidate: Model<ICandidate> =
-  mongoose.models.Candidate || mongoose.model<ICandidate>('Candidate', CandidateSchema);
-
+const Candidate = new BaseModel('Candidate');
 export default Candidate;

@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { uploadToCloudinary } from '@/lib/cloudinary';
+import { getAuthUser } from '@/lib/auth';
 
 export async function POST(request: Request) {
+  const { error, user } = await getAuthUser(['admin', 'election_admin', 'voter']);
+  if (error) return error;
+
   try {
     const { file, folder } = await request.json();
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '@/lib/dbConnect';
 import { getAuthUser } from '@/lib/auth';
 import Candidate from '@/models/Candidate';
 import Election from '@/models/Election';
@@ -21,14 +21,14 @@ export async function GET(request: Request) {
     const candidates = await Candidate.find(filter).sort({ createdAt: -1 });
 
     // Fetch election statuses to mask candidates belonging to open elections
-    const electionIds = Array.from(new Set(candidates.map(c => c.electionId.toString())));
+    const electionIds = Array.from(new Set(candidates.map((c: any) => c.electionId.toString())));
     const elections = await Election.find({ _id: { $in: electionIds } });
     const closedMap: Record<string, boolean> = {};
-    elections.forEach(e => {
+    elections.forEach((e: any) => {
       closedMap[e._id.toString()] = e.status === 'closed';
     });
 
-    let formatted: any = candidates.map(c => {
+    let formatted: any = candidates.map((c: any) => {
       const doc = c.toObject();
       if (!closedMap[doc.electionId.toString()]) {
         doc.voteCount = 0;

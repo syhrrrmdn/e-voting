@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import dbConnect from '@/lib/mongodb';
+import { authOptions } from '@/lib/auth';
+import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 
 // GET - Get current authenticated user's profile from DB

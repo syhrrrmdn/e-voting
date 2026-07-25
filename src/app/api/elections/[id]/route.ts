@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '@/lib/dbConnect';
 import { getAuthUser } from '@/lib/auth';
 import Election from '@/models/Election';
 import Candidate from '@/models/Candidate';
@@ -131,7 +131,19 @@ export async function DELETE(
       );
     }
 
-    // Soft delete: mark election and its candidates as deleted
+    // Soft delete: mark election and its candidates as deleted & cleanup images from Cloudinary
+    const candidates = await Candidate.find({ electionId: id, deletedAt: null });
+    const { deleteFromCloudinary } = await import('@/lib/cloudinary');
+    for (const cand of candidates) {
+      if (cand.image) {
+        try {
+          await deleteFromCloudinary(cand.image);
+        } catch (cErr) {
+          console.warn('Gagal menghapus gambar kandidat dari Cloudinary:', cErr);
+        }
+      }
+    }
+
     const now = new Date();
     await Candidate.updateMany({ electionId: id, deletedAt: null }, { deletedAt: now });
     await Election.findByIdAndUpdate(id, { deletedAt: now });

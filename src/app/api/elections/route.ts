@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '@/lib/dbConnect';
 import { getAuthUser } from '@/lib/auth';
 import Election from '@/models/Election';
 import Candidate from '@/models/Candidate';
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       .sort({ createdAt: -1 });
 
     // Mask vote counts for everyone if election is not closed
-    const formatted = elections.map(e => {
+    const formatted = elections.map((e: any) => {
       const doc = e.toObject();
       if (doc.status !== 'closed') {
         doc.totalVotes = 0;

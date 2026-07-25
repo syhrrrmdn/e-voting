@@ -155,7 +155,7 @@ export default function SystemSettings() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4 mb-4">
             <div>
               <h3 className="text-base font-bold text-slate-900">Status Koneksi Database</h3>
-              <p className="text-xs text-slate-500">Hasil diagnosis konektivitas ke database MongoDB cluster</p>
+              <p className="text-xs text-slate-500">Hasil diagnosis konektivitas ke database Supabase / PostgreSQL</p>
             </div>
             <Button variant="secondary" size="sm" onClick={checkDatabase} disabled={dbStatus.loading}>
               {dbStatus.loading ? 'Menghubungkan...' : 'Uji Koneksi Ulang'}
@@ -165,7 +165,7 @@ export default function SystemSettings() {
           {dbStatus.loading ? (
             <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl animate-pulse">
               <div className="w-3.5 h-3.5 bg-slate-300 rounded-full"></div>
-              <span className="text-sm font-semibold text-slate-500">Memeriksa status koneksi ke MongoDB cluster...</span>
+              <span className="text-sm font-semibold text-slate-500">Memeriksa status koneksi ke Supabase...</span>
             </div>
           ) : dbStatus.success ? (
             <div className="space-y-4">
@@ -175,7 +175,7 @@ export default function SystemSettings() {
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                 </span>
                 <div className="flex-1">
-                  <p className="text-sm font-bold">Koneksi MongoDB Berhasil!</p>
+                  <p className="text-sm font-bold">Koneksi Supabase Berhasil!</p>
                   <p className="text-xs text-emerald-600 mt-0.5">{dbStatus.message}</p>
                 </div>
                 <Badge color="green">{dbStatus.status}</Badge>
@@ -184,15 +184,15 @@ export default function SystemSettings() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div className="p-3 bg-slate-50 rounded-lg">
                   <span className="block text-[11px] font-semibold text-slate-400 uppercase">Nama Database</span>
-                  <span className="text-sm font-bold text-slate-700">{dbStatus.dbName || 'e_voting'}</span>
+                  <span className="text-sm font-bold text-slate-700">{dbStatus.dbName || 'Supabase PostgreSQL'}</span>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-lg">
                   <span className="block text-[11px] font-semibold text-slate-400 uppercase">Provider Database</span>
-                  <span className="text-sm font-bold text-slate-700">MongoDB Atlas</span>
+                  <span className="text-sm font-bold text-slate-700">Supabase</span>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-lg">
                   <span className="block text-[11px] font-semibold text-slate-400 uppercase">Driver</span>
-                  <span className="text-sm font-bold text-slate-700">Mongoose / Node.js Native</span>
+                  <span className="text-sm font-bold text-slate-700">Supabase JS SDK / PostgREST</span>
                 </div>
               </div>
             </div>
@@ -203,7 +203,7 @@ export default function SystemSettings() {
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
                 </span>
                 <div className="flex-1">
-                  <p className="text-sm font-bold">Koneksi MongoDB Gagal</p>
+                  <p className="text-sm font-bold">Koneksi Supabase Gagal</p>
                   <p className="text-xs text-red-600 mt-0.5">{dbStatus.message}</p>
                 </div>
                 <Badge color="red">{dbStatus.status}</Badge>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Table, Badge, Button, Modal, SearchInput, Tabs, type TableColumn } from '@/components/ui';
 import { BarChart, PieChart } from '@/components/ui/Charts';
+import ElectionReportModal from '@/components/ui/ElectionReportModal';
 
 const statusColor = (s: string) => {
   switch (s) {
@@ -34,6 +35,7 @@ export default function AdminElectionManagement() {
   const [monitorModalOpen, setMonitorModalOpen] = useState(false);
   const [selectedElection, setSelectedElection] = useState<any>(null);
   const [modalCandidates, setModalCandidates] = useState<any[]>([]);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -179,7 +181,18 @@ export default function AdminElectionManagement() {
           title={`Detail & Monitoring Pemilihan: ${selectedElection.title}`} 
           size="xl"
           footer={
-            <Button variant="secondary" onClick={() => setMonitorModalOpen(false)}>Tutup</Button>
+            <div className="flex justify-between items-center w-full">
+              {selectedElection.status === 'closed' ? (
+                <Button variant="primary" onClick={() => setReportModalOpen(true)} icon={
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                }>
+                  Cetak PDF Hasil
+                </Button>
+              ) : <div />}
+              <Button variant="secondary" onClick={() => setMonitorModalOpen(false)}>Tutup</Button>
+            </div>
           }
         >
           <div className="space-y-6">
@@ -243,6 +256,13 @@ export default function AdminElectionManagement() {
                 <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 text-sm">
                   🔒 Hasil perolehan suara kandidat dikunci sampai pemilihan ini resmi selesai (status CLOSED) untuk menjaga kerahasiaan &amp; netralitas pemilu.
                 </div>
+              ) : modalCandidates.reduce((s, c) => s + (c.voteCount || 0), 0) === 0 ? (
+                <div className="text-center py-6 bg-red-50 border-2 border-red-200 rounded-xl text-red-900 text-sm p-4">
+                  <span className="text-xs font-black uppercase tracking-wider text-red-700 block mb-1">
+                    ⚠️ PEMILIHAN TIDAK SAH (INVALID)
+                  </span>
+                  Tidak ada suara yang masuk selama periode pemungutan suara (0 Suara). Pemilihan ini dinyatakan Batal / Tidak Sah dan tidak ada kandidat yang ditetapkan sebagai pemenang.
+                </div>
               ) : modalCandidates.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
                   <div className="flex justify-center p-4 border border-slate-100 rounded-xl bg-slate-50/50">
@@ -261,6 +281,16 @@ export default function AdminElectionManagement() {
           </div>
         </Modal>
       )}
+
+      {selectedElection && (
+        <ElectionReportModal
+          open={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          election={selectedElection}
+          candidates={candidates}
+        />
+      )}
     </div>
   );
 }
+

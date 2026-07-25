@@ -1,12 +1,15 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { PageHeader, Card, Badge } from '@/components/ui';
+import { PageHeader, Card, Badge, Button } from '@/components/ui';
 import { PieChart, BarChart } from '@/components/ui/Charts';
+import ElectionReportModal from '@/components/ui/ElectionReportModal';
 
 export default function Results() {
   const [elections, setElections] = useState<any[]>([]);
   const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPrintElection, setSelectedPrintElection] = useState<any>(null);
+  const [printModalOpen, setPrintModalOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -36,6 +39,11 @@ export default function Results() {
     fetchData();
   }, []);
 
+  const handleOpenPrint = (election: any) => {
+    setSelectedPrintElection(election);
+    setPrintModalOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="py-12 flex flex-col items-center justify-center text-slate-500">
@@ -64,22 +72,36 @@ export default function Results() {
           {closedElections.map(election => {
             const electionCandidates = candidates.filter(c => c.electionId === election._id);
             const totalVotes = electionCandidates.reduce((s, c) => s + (c.voteCount || 0), 0);
+            const isInvalid = totalVotes === 0;
             
             return (
               <Card key={election._id} className="space-y-6">
                 <div className="flex flex-wrap justify-between items-start gap-3 border-b border-slate-100 pb-4">
                   <div>
-                    <Badge color="gray">Selesai</Badge>
-                    <h3 className="text-lg font-bold text-slate-900 mt-1">{election.title}</h3>
+                    <div className="flex items-center gap-2">
+                      {isInvalid ? (
+                        <Badge color="red">TIDAK SAH / INVALID</Badge>
+                      ) : (
+                        <Badge color="gray">Selesai (Sah)</Badge>
+                      )}
+                      <Button variant="secondary" size="sm" onClick={() => handleOpenPrint(election)} icon={
+                        <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                      }>
+                        Cetak PDF Laporan
+                      </Button>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mt-2">{election.title}</h3>
                     <p className="text-xs text-slate-400 mt-1">Selesai pada: {new Date(election.endTime).toLocaleString('id-ID')}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-slate-900">{totalVotes.toLocaleString()}</p>
+                    <p className={`text-lg font-bold ${isInvalid ? 'text-red-600' : 'text-slate-900'}`}>{totalVotes.toLocaleString()}</p>
                     <p className="text-xs text-slate-400">Total Suara Masuk</p>
                   </div>
                 </div>
 
-                {totalVotes > 0 ? (
+                {!isInvalid ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
                     <div className="flex justify-center py-2">
                       <PieChart data={electionCandidates.map(c => ({ label: c.name, value: c.voteCount || 0 }))} />
@@ -89,7 +111,14 @@ export default function Results() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-400 text-center py-6">Tidak ada suara masuk untuk pemilihan ini.</p>
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+                    <span className="text-xs font-black text-red-700 uppercase tracking-wider block mb-1">
+                      ⚠️ PEMILIHAN TIDAK SAH (INVALID)
+                    </span>
+                    <p className="text-xs text-red-600">
+                      Tidak ada suara yang masuk selama periode pemungutan suara (0 Suara). Pemilihan ini dinyatakan Batal / Tidak Sah dan tidak ada pemenang yang ditetapkan.
+                    </p>
+                  </div>
                 )}
               </Card>
             );
@@ -113,6 +142,16 @@ export default function Results() {
           )}
         </div>
       )}
+
+      {selectedPrintElection && (
+        <ElectionReportModal
+          open={printModalOpen}
+          onClose={() => setPrintModalOpen(false)}
+          election={selectedPrintElection}
+          candidates={candidates}
+        />
+      )}
     </div>
   );
 }
+

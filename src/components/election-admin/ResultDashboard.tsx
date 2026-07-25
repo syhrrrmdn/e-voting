@@ -2,12 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Button, Select, Badge, StatsCard } from '@/components/ui';
 import { BarChart, PieChart } from '@/components/ui/Charts';
+import ElectionReportModal from '@/components/ui/ElectionReportModal';
 
 export default function ResultDashboard() {
   const [elections, setElections] = useState<any[]>([]);
   const [candidates, setCandidates] = useState<any[]>([]);
   const [selectedElectionId, setSelectedElectionId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -52,7 +54,15 @@ export default function ResultDashboard() {
   const sortedCandidates = [...electionCandidates].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
 
   const handleExport = (format: string) => {
-    alert(`Mengekspor hasil pemilihan "${selectedElection?.title}" dalam format ${format}...`);
+    if (format === 'PDF') {
+      if (selectedElection?.status === 'closed') {
+        setReportModalOpen(true);
+      } else {
+        alert('Cetak PDF Berita Acara hanya tersedia untuk pemilihan yang sudah DITUTUP / SELESAI.');
+      }
+    } else {
+      alert(`Mengekspor hasil pemilihan "${selectedElection?.title}" dalam format ${format}...`);
+    }
   };
 
   if (loading) {
@@ -72,19 +82,21 @@ export default function ResultDashboard() {
         action={
           selectedElection && (
             <div className="flex gap-2">
+              {selectedElection.status === 'closed' && (
+                <Button variant="primary" size="sm" onClick={() => setReportModalOpen(true)} icon={
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                }>
+                  Cetak PDF Hasil
+                </Button>
+              )}
               <Button variant="secondary" size="sm" onClick={() => handleExport('PDF')} icon={
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               }>
                 Ekspor PDF
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => handleExport('Excel')} icon={
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              }>
-                Ekspor Excel
               </Button>
             </div>
           )
@@ -156,8 +168,14 @@ export default function ResultDashboard() {
               </Card>
             </div>
           ) : (
-            <Card className="py-12 flex flex-col items-center justify-center text-slate-400">
-              <p className="text-sm">Belum ada suara masuk untuk pemilihan ini.</p>
+            <Card className="py-8 bg-red-50 border-2 border-red-200 text-center">
+              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+                ⚠️
+              </div>
+              <h3 className="text-base font-bold text-red-900 mb-1">PEMILIHAN TIDAK SAH (INVALID)</h3>
+              <p className="text-xs text-red-700 max-w-lg mx-auto leading-relaxed">
+                Tidak ada suara yang masuk selama periode pemungutan suara (0 Suara). Sesuai dengan aturan sistem e-voting, pemilihan ini dinyatakan <strong>Batal / Tidak Sah</strong> dan tidak ada kandidat yang ditetapkan sebagai pemenang.
+              </p>
             </Card>
           )}
 
@@ -180,7 +198,9 @@ export default function ResultDashboard() {
                     return (
                       <tr key={cand._id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3.5 px-4 font-bold text-slate-600">
-                          {idx + 1 === 1 ? (
+                          {totalVotes === 0 ? (
+                            <Badge color="red">INVALID</Badge>
+                          ) : idx + 1 === 1 ? (
                             <Badge color="yellow">🏆 Rank 1</Badge>
                           ) : (
                             `Rank ${idx + 1}`
@@ -205,6 +225,16 @@ export default function ResultDashboard() {
           </Card>
         </div>
       )}
+
+      {selectedElection && (
+        <ElectionReportModal
+          open={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          election={selectedElection}
+          candidates={candidates}
+        />
+      )}
     </div>
   );
 }
+

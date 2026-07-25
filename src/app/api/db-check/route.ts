@@ -1,27 +1,25 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import mongoose from 'mongoose';
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    await dbConnect();
+    const { error } = await supabase.from('SystemSettings').select('appName').limit(1);
     
-    // Check current state of mongoose connection
-    // 0: disconnected, 1: connected, 2: connecting, 3: disconnecting
-    const state = mongoose.connection.readyState;
-    const states = ['Disconnected', 'Connected', 'Connecting', 'Disconnecting'];
+    if (error) {
+      throw error;
+    }
     
     return NextResponse.json({
       success: true,
-      status: states[state],
-      readyState: state,
-      message: 'Koneksi ke MongoDB berhasil terhubung!',
-      dbName: mongoose.connection.name
+      status: 'Connected',
+      readyState: 1,
+      message: 'Koneksi ke Supabase/PostgreSQL berhasil terhubung!',
+      dbName: 'Supabase PostgreSQL'
     });
   } catch (error: any) {
     return NextResponse.json({
       success: false,
-      message: 'Gagal terhubung ke MongoDB',
+      message: 'Gagal terhubung ke Supabase/PostgreSQL',
       error: error.message || error
     }, { status: 500 });
   }

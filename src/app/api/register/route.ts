@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import DynamicAttribute from '@/models/DynamicAttribute';
 import crypto from 'crypto';
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const dynamicAttrs = await DynamicAttribute.find({});
     
     // Filter attributes that are applicable to this category and required
-    const requiredAttrs = dynamicAttrs.filter(attr => {
+    const requiredAttrs = dynamicAttrs.filter((attr: any) => {
       const isApplicable = !attr.applicableTo || attr.applicableTo.length === 0 || attr.applicableTo.includes(category);
       return isApplicable && attr.required;
     });
@@ -65,10 +65,24 @@ export async function POST(request: Request) {
       }
     }
 
-    // 6. Hash password with SHA-256
+    // 6. Register user in Supabase Auth
+    const { supabase } = await import('@/lib/supabase');
+    try {
+      await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
+        password,
+        options: {
+          data: { name: name.trim(), category, role: 'voter' },
+        },
+      });
+    } catch (sbAuthErr) {
+      console.warn('Supabase Auth signUp note:', sbAuthErr);
+    }
+
+    // 7. Hash password with SHA-256 for local fallback
     const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
 
-    // 7. Create user
+    // 8. Create user document in public User table
     const newUser = await User.create({
       name: name.trim(),
       email: email.toLowerCase().trim(),

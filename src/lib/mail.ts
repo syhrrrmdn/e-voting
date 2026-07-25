@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import dbConnect from './mongodb';
+import dbConnect from './dbConnect';
 import SystemSettings from '@/models/SystemSettings';
 
 export async function sendResetPasswordEmail(email: string, resetLink: string) {
