@@ -38,6 +38,8 @@ export default function UserManagement() {
   // Selected user for delete / reset password action
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchMeta = async () => {
     try {
@@ -178,6 +180,7 @@ export default function UserManagement() {
 
   const handleDeleteConfirm = async () => {
     if (!selectedUser) return;
+    setDeleting(true);
     try {
       const res = await fetch(`/api/users/${selectedUser._id}`, { method: 'DELETE' });
       const json = await res.json();
@@ -189,9 +192,11 @@ export default function UserManagement() {
       }
     } catch (err) {
       Swal.error('Error', 'Gagal menghubungkan ke server');
+    } finally {
+      setDeleting(false);
+      setDeleteModalOpen(false);
+      setSelectedUser(null);
     }
-    setDeleteModalOpen(false);
-    setSelectedUser(null);
   };
 
   const handleOpenReset = (user: any) => {
@@ -201,6 +206,7 @@ export default function UserManagement() {
 
   const handleResetConfirm = async () => {
     if (!selectedUser) return;
+    setResetting(true);
     try {
       const res = await fetch(`/api/users/${selectedUser._id}`, {
         method: 'PUT',
@@ -216,6 +222,7 @@ export default function UserManagement() {
     } catch (err) {
       Swal.error('Error', 'Gagal menghubungkan ke server');
     } finally {
+      setResetting(false);
       setResetModalOpen(false);
       setSelectedUser(null);
     }
@@ -483,8 +490,18 @@ export default function UserManagement() {
           size="sm"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setResetModalOpen(false)}>Batal</Button>
-              <Button variant="primary" onClick={handleResetConfirm}>Ya, Reset Password</Button>
+              <Button variant="secondary" onClick={() => setResetModalOpen(false)} disabled={resetting}>Batal</Button>
+              <Button variant="primary" onClick={handleResetConfirm} disabled={resetting}>
+                {resetting ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Memproses...
+                  </span>
+                ) : 'Ya, Reset Password'}
+              </Button>
             </>
           }
         >
@@ -511,8 +528,18 @@ export default function UserManagement() {
           size="sm"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setDeleteModalOpen(false)}>Batal</Button>
-              <Button variant="danger" onClick={handleDeleteConfirm}>Hapus Pengguna</Button>
+              <Button variant="secondary" onClick={() => setDeleteModalOpen(false)} disabled={deleting}>Batal</Button>
+              <Button variant="danger" onClick={handleDeleteConfirm} disabled={deleting}>
+                {deleting ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Menghapus...
+                  </span>
+                ) : 'Hapus Pengguna'}
+              </Button>
             </>
           }
         >

@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { PageHeader, Card, Button, Select, Input, Toast, ToastNotification } from '@/components/ui';
+import { PageHeader, Card, Button, Select, Input } from '@/components/ui';
+import Swal from '@/lib/swal';
 import type { RuleGroup, RuleCondition, RuleOperator } from '@/types';
 
 const makeId = () => Math.random().toString(36).substring(2, 9);
@@ -256,21 +257,6 @@ export default function VoterRuleEngine() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Toast Notification State
-  const [toast, setToast] = useState<ToastNotification | null>(null);
-
-  const showToast = (type: 'success' | 'error' | 'info' | 'warning', message: string, title?: string) => {
-    setToast({ id: makeId(), type, title, message });
-  };
-
-  // Auto hide toast after 3.5 seconds
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 3500);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
-
   useEffect(() => {
     (async () => {
       try {
@@ -307,14 +293,12 @@ export default function VoterRuleEngine() {
 
   const setLogic = (gid: string, logic: 'AND' | 'OR') => {
     setRuleGroup(walk(ruleGroup, gid, g => ({ ...g, logic })));
-    showToast('info', `Mode pencocokan diubah ke "${logic === 'AND' ? 'Semua kriteria harus terpenuhi' : 'Cukup salah satu kriteria terpenuhi'}"`);
   };
 
   const addCond = (gid: string) => {
     setRuleGroup(walk(ruleGroup, gid, g => ({
       ...g, conditions: [...g.conditions, { id: makeId(), field: 'category', operator: '=' as RuleOperator, value: '' }]
     })));
-    showToast('info', 'Kriteria baru telah ditambahkan ke dalam aturan.');
   };
 
   const updCond = (gid: string, cid: string, u: Partial<RuleCondition>) =>
@@ -324,24 +308,21 @@ export default function VoterRuleEngine() {
 
   const rmCond = (gid: string, cid: string) => {
     setRuleGroup(walk(ruleGroup, gid, g => ({ ...g, conditions: g.conditions.filter(c => c.id !== cid) })));
-    showToast('warning', 'Kriteria pemilih telah dihapus.');
   };
 
   const addGrp = (gid: string) => {
     setRuleGroup(walk(ruleGroup, gid, g => ({
       ...g, groups: [...g.groups, { id: makeId(), logic: 'AND' as const, conditions: [], groups: [] }]
     })));
-    showToast('info', 'Kelompok pemilih baru telah ditambahkan.');
   };
 
   const rmGrp = (pid: string, cid: string) => {
     setRuleGroup(walk(ruleGroup, pid, g => ({ ...g, groups: g.groups.filter(c => c.id !== cid) })));
-    showToast('warning', 'Kelompok pemilih telah dihapus.');
   };
 
   const handleSave = async () => {
     if (!selectedElectionId) {
-      showToast('error', 'Pilih salah satu pemilihan terlebih dahulu.', 'Peringatan');
+      Swal.warning('Peringatan', 'Pilih salah satu pemilihan terlebih dahulu.');
       return;
     }
     setSaving(true);
@@ -352,13 +333,13 @@ export default function VoterRuleEngine() {
       });
       const j = await res.json();
       if (j.success) {
-        showToast('success', 'Aturan hak pilih berhasil diperbarui dan disimpan!', 'Pengaturan Disimpan');
+        Swal.success('Pengaturan Disimpan', 'Aturan hak pilih berhasil diperbarui dan disimpan!');
         setElections(p => p.map(e => e._id === selectedElectionId ? { ...e, rules: ruleGroup } : e));
       } else {
-        showToast('error', j.message || 'Gagal menyimpan aturan hak pilih.', 'Gagal Menyimpan');
+        Swal.error('Gagal Menyimpan', j.message || 'Gagal menyimpan aturan hak pilih.');
       }
     } catch (_) {
-      showToast('error', 'Gagal menghubungkan ke server.', 'Kesalahan Jaringan');
+      Swal.error('Kesalahan Jaringan', 'Gagal menghubungkan ke server.');
     } finally {
       setSaving(false);
     }
@@ -380,8 +361,6 @@ export default function VoterRuleEngine() {
 
   return (
     <div>
-      {/* Toast Notification Component */}
-      <Toast toast={toast} onClose={() => setToast(null)} />
 
       <PageHeader title="Pengaturan Hak Pilih" subtitle="Tentukan siapa saja yang dapat mengikuti pemilihan ini berdasarkan kriteria tertentu." />
 
