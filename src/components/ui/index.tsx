@@ -24,15 +24,15 @@ const btnBase =
 
 const btnVariants: Record<ButtonVariant, string> = {
   primary:
-    'bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 focus:ring-indigo-500 shadow-sm shadow-indigo-200',
+    'bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 focus:ring-indigo-500 shadow-sm',
   secondary:
-    'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 active:bg-slate-100 focus:ring-slate-400 shadow-sm',
+    'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 active:bg-gray-100 focus:ring-gray-300 shadow-sm',
   danger:
-    'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 focus:ring-red-500 shadow-sm shadow-red-200',
+    'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 focus:ring-red-400 shadow-sm',
   ghost:
-    'text-slate-600 hover:bg-slate-100 active:bg-slate-200 focus:ring-slate-400',
+    'text-gray-600 hover:bg-gray-100 active:bg-gray-200 focus:ring-gray-300',
   success:
-    'bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 focus:ring-emerald-500 shadow-sm shadow-emerald-200',
+    'bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 focus:ring-emerald-400 shadow-sm',
 };
 
 const btnSizes: Record<ButtonSize, string> = {
@@ -161,62 +161,53 @@ export function StatsCard({
   onClick?: () => void;
 }) {
   const colorMap = {
-    indigo: 'from-indigo-500 to-indigo-600',
-    emerald: 'from-emerald-500 to-emerald-600',
-    blue: 'from-blue-500 to-blue-600',
-    amber: 'from-amber-500 to-amber-600',
-    rose: 'from-rose-500 to-rose-600',
-    cyan: 'from-cyan-500 to-cyan-600',
+    indigo:  'bg-indigo-50 text-indigo-600 border border-indigo-100',
+    emerald: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    blue:    'bg-blue-50 text-blue-600 border border-blue-100',
+    amber:   'bg-amber-50 text-amber-600 border border-amber-100',
+    rose:    'bg-rose-50 text-rose-600 border border-rose-100',
+    cyan:    'bg-teal-50 text-teal-600 border border-teal-100',
   };
 
   const bgMap = {
-    indigo: 'bg-indigo-50',
-    emerald: 'bg-emerald-50',
-    blue: 'bg-blue-50',
-    amber: 'bg-amber-50',
-    rose: 'bg-rose-50',
-    cyan: 'bg-cyan-50',
+    indigo:  'bg-indigo-50/60',
+    emerald: 'bg-emerald-50/60',
+    blue:    'bg-blue-50/60',
+    amber:   'bg-amber-50/60',
+    rose:    'bg-rose-50/60',
+    cyan:    'bg-teal-50/60',
   };
 
   return (
     <Card
       onClick={onClick}
       hover={!!onClick}
-      className={`animate-fade-in stagger-${index + 1} relative overflow-hidden ${onClick ? 'cursor-pointer hover:scale-[1.02] hover:shadow-md' : ''}`}
+      className={`animate-fade-in stagger-${index + 1} relative overflow-hidden ${onClick ? 'cursor-pointer hover:scale-[1.01] hover:shadow-md' : ''}`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-500 truncate">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900 tracking-tight">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide truncate">{title}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900 tracking-tight">
             {value}
           </p>
           {(subtitle || trend) && (
             <div className="mt-2 flex items-center gap-2">
               {trend && (
-                <span
-                  className={`inline-flex items-center text-xs font-semibold ${
-                    trendUp ? 'text-emerald-600' : 'text-red-600'
-                  }`}
-                >
+                <span className={`inline-flex items-center text-xs font-semibold ${
+                  trendUp ? 'text-emerald-600' : 'text-red-600'
+                }`}>
                   {trendUp ? '↑' : '↓'} {trend}
                 </span>
               )}
-              {subtitle && (
-                <span className="text-xs text-slate-400">{subtitle}</span>
-              )}
+              {subtitle && <span className="text-xs text-gray-400">{subtitle}</span>}
             </div>
           )}
         </div>
-        <div
-          className={`flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${colorMap[color]} text-white shadow-lg shadow-${color}-200`}
-        >
+        <div className={`flex items-center justify-center w-11 h-11 rounded-xl ${colorMap[color]}`}>
           {icon}
         </div>
       </div>
-      {/* Decorative element */}
-      <div
-        className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full ${bgMap[color]} opacity-50`}
-      />
+      <div className={`absolute -bottom-4 -right-4 w-20 h-20 rounded-full ${bgMap[color]}`} />
     </Card>
   );
 }
@@ -249,7 +240,7 @@ export function Modal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -344,8 +335,8 @@ export function Table<T extends { id: string }>({
                 onClick={() => onRowClick?.(row)}
                 className={`transition-colors ${
                   onRowClick
-                    ? 'cursor-pointer hover:bg-indigo-50/50'
-                    : 'hover:bg-slate-50/80'
+                    ? 'cursor-pointer hover:bg-indigo-50'
+                    : 'hover:bg-gray-50'
                 }`}
               >
                 {columns.map((col) => (
@@ -839,10 +830,10 @@ export function Pagination({
             onClick={() => typeof p === 'number' && onPageChange(p)}
             className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all ${
               p === currentPage
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10'
+                ? 'bg-indigo-600 text-white'
                 : p === '...'
-                ? 'text-slate-400 cursor-default'
-                : 'text-slate-600 border border-slate-200 hover:bg-slate-50 cursor-pointer'
+                ? 'text-gray-400 cursor-default'
+                : 'text-gray-600 border border-gray-200 hover:bg-gray-50 cursor-pointer'
             }`}
           >
             {p}
@@ -860,6 +851,68 @@ export function Pagination({
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// TOAST NOTIFICATION
+// ──────────────────────────────────────────────
+export interface ToastNotification {
+  id?: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  title?: string;
+  message: string;
+}
+
+export function Toast({
+  toast,
+  onClose,
+}: {
+  toast: ToastNotification | null;
+  onClose: () => void;
+}) {
+  if (!toast) return null;
+
+  const typeMap = {
+    success: 'bg-emerald-600 text-white shadow-emerald-900/20',
+    error:   'bg-red-600 text-white shadow-red-900/20',
+    info:    'bg-indigo-600 text-white shadow-indigo-900/20',
+    warning: 'bg-amber-600 text-white shadow-amber-900/20',
+  };
+
+  const iconMap = {
+    success: (
+      <svg className="w-5 h-5 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    ),
+    error: (
+      <svg className="w-5 h-5 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    ),
+    info: (
+      <svg className="w-5 h-5 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    warning: (
+      <svg className="w-5 h-5 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    ),
+  };
+
+  return (
+    <div className="fixed top-4 right-4 z-50 animate-bounce">
+      <div 
+        onClick={onClose}
+        className={`px-4 py-3 rounded-lg shadow-lg flex items-center gap-2.5 max-w-md cursor-pointer select-none ${typeMap[toast.type]}`}
+      >
+        {iconMap[toast.type]}
+        <span className="text-sm font-medium leading-normal">{toast.message}</span>
       </div>
     </div>
   );

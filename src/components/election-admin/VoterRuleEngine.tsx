@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { PageHeader, Card, Button, Select, Input } from '@/components/ui';
+import { PageHeader, Card, Button, Select, Input, Toast, ToastNotification } from '@/components/ui';
 import type { RuleGroup, RuleCondition, RuleOperator } from '@/types';
 
 const makeId = () => Math.random().toString(36).substring(2, 9);
@@ -11,7 +11,6 @@ const operatorOptions: { value: RuleOperator; label: string }[] = [
   { value: '!=', label: 'Bukan' },
   { value: 'IN', label: 'Salah satu dari' },
 ];
-
 
 // --- Helper to build dynamic natural phrasing for checklist ---
 function getPhrase(field: string, operator: string, value: string, attrs: any[], cats: any[]): string {
@@ -52,7 +51,7 @@ function buildChecklist(group: RuleGroup, attrs: any[], cats: any[]): string[] {
   return items;
 }
 
-// --- Condition Row Component (Outside to prevent losing focus) ---
+// --- Condition Row Component ---
 const ConditionRow = ({
   cond,
   gid,
@@ -113,7 +112,7 @@ const ConditionRow = ({
   );
 };
 
-// --- Group Component (Outside to prevent losing focus) ---
+// --- Group Block Component ---
 const GroupBlock = ({
   group,
   parentId,
@@ -178,7 +177,7 @@ const GroupBlock = ({
         </div>
       </div>
 
-      {/* Empty */}
+      {/* Empty State */}
       {empty && (
         <div className="text-center py-8 text-slate-400">
           <svg className="w-12 h-12 mx-auto mb-3 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
@@ -256,8 +255,21 @@ export default function VoterRuleEngine() {
   const [ruleGroup, setRuleGroup] = useState<RuleGroup>({ id: 'rg-root', logic: 'AND', conditions: [], groups: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
+
+  // Toast Notification State
+  const [toast, setToast] = useState<ToastNotification | null>(null);
+
+  const showToast = (type: 'success' | 'error' | 'info' | 'warning', message: string, title?: string) => {
+    setToast({ id: makeId(), type, title, message });
+  };
+
+  // Auto hide toast after 3.5 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   useEffect(() => {
     (async () => {
@@ -282,7 +294,6 @@ export default function VoterRuleEngine() {
     } else {
       setRuleGroup({ id: makeId(), logic: 'AND', conditions: [], groups: [] });
     }
-    setSuccess(''); setError('');
   }, [selectedElectionId, elections]);
 
   const attributeOptions = [
@@ -294,28 +305,46 @@ export default function VoterRuleEngine() {
   const walk = (g: RuleGroup, id: string, fn: (g: RuleGroup) => RuleGroup): RuleGroup =>
     g.id === id ? fn(g) : { ...g, groups: g.groups.map(c => walk(c, id, fn)) };
 
-  const setLogic = (gid: string, logic: 'AND' | 'OR') =>
+  const setLogic = (gid: string, logic: 'AND' | 'OR') => {
     setRuleGroup(walk(ruleGroup, gid, g => ({ ...g, logic })));
-  const addCond = (gid: string) =>
+    showToast('info', `Mode pencocokan diubah ke "${logic === 'AND' ? 'Semua kriteria harus terpenuhi' : 'Cukup salah satu kriteria terpenuhi'}"`);
+  };
+
+  const addCond = (gid: string) => {
     setRuleGroup(walk(ruleGroup, gid, g => ({
       ...g, conditions: [...g.conditions, { id: makeId(), field: 'category', operator: '=' as RuleOperator, value: '' }]
     })));
+    showToast('info', 'Kriteria baru telah ditambahkan ke dalam aturan.');
+  };
+
   const updCond = (gid: string, cid: string, u: Partial<RuleCondition>) =>
     setRuleGroup(walk(ruleGroup, gid, g => ({
       ...g, conditions: g.conditions.map(c => c.id === cid ? { ...c, ...u } as RuleCondition : c)
     })));
-  const rmCond = (gid: string, cid: string) =>
+
+  const rmCond = (gid: string, cid: string) => {
     setRuleGroup(walk(ruleGroup, gid, g => ({ ...g, conditions: g.conditions.filter(c => c.id !== cid) })));
-  const addGrp = (gid: string) =>
+    showToast('warning', 'Kriteria pemilih telah dihapus.');
+  };
+
+  const addGrp = (gid: string) => {
     setRuleGroup(walk(ruleGroup, gid, g => ({
       ...g, groups: [...g.groups, { id: makeId(), logic: 'AND' as const, conditions: [], groups: [] }]
     })));
-  const rmGrp = (pid: string, cid: string) =>
+    showToast('info', 'Kelompok pemilih baru telah ditambahkan.');
+  };
+
+  const rmGrp = (pid: string, cid: string) => {
     setRuleGroup(walk(ruleGroup, pid, g => ({ ...g, groups: g.groups.filter(c => c.id !== cid) })));
+    showToast('warning', 'Kelompok pemilih telah dihapus.');
+  };
 
   const handleSave = async () => {
-    if (!selectedElectionId) return;
-    setSaving(true); setSuccess(''); setError('');
+    if (!selectedElectionId) {
+      showToast('error', 'Pilih salah satu pemilihan terlebih dahulu.', 'Peringatan');
+      return;
+    }
+    setSaving(true);
     try {
       const res = await fetch(`/api/elections/${selectedElectionId}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
@@ -323,11 +352,16 @@ export default function VoterRuleEngine() {
       });
       const j = await res.json();
       if (j.success) {
-        setSuccess('Pengaturan hak pilih berhasil disimpan!');
+        showToast('success', 'Aturan hak pilih berhasil diperbarui dan disimpan!', 'Pengaturan Disimpan');
         setElections(p => p.map(e => e._id === selectedElectionId ? { ...e, rules: ruleGroup } : e));
-      } else setError(j.message || 'Gagal menyimpan');
-    } catch (_) { setError('Gagal menghubungkan ke server'); }
-    finally { setSaving(false); }
+      } else {
+        showToast('error', j.message || 'Gagal menyimpan aturan hak pilih.', 'Gagal Menyimpan');
+      }
+    } catch (_) {
+      showToast('error', 'Gagal menghubungkan ke server.', 'Kesalahan Jaringan');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // --- Loading ---
@@ -346,6 +380,9 @@ export default function VoterRuleEngine() {
 
   return (
     <div>
+      {/* Toast Notification Component */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       <PageHeader title="Pengaturan Hak Pilih" subtitle="Tentukan siapa saja yang dapat mengikuti pemilihan ini berdasarkan kriteria tertentu." />
 
       {/* Election picker */}
@@ -355,20 +392,6 @@ export default function VoterRuleEngine() {
             value={selectedElectionId} onChange={e => setSelectedElectionId(e.target.value)} />
         </div>
       </Card>
-
-      {/* Messages */}
-      {success && (
-        <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-medium flex items-center gap-2">
-          <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          {success}
-        </div>
-      )}
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium flex items-center gap-2">
-          <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-          {error}
-        </div>
-      )}
 
       {elections.length === 0 ? (
         <Card className="py-12 text-center text-slate-400">Belum ada pemilihan. Buat pemilihan terlebih dahulu.</Card>

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Button, Select, Badge, StatsCard } from '@/components/ui';
 import { BarChart, PieChart } from '@/components/ui/Charts';
 import ElectionReportModal from '@/components/ui/ElectionReportModal';
+import Swal from '@/lib/swal';
 
 export default function ResultDashboard() {
   const [elections, setElections] = useState<any[]>([]);
@@ -58,10 +59,10 @@ export default function ResultDashboard() {
       if (selectedElection?.status === 'closed') {
         setReportModalOpen(true);
       } else {
-        alert('Cetak PDF Berita Acara hanya tersedia untuk pemilihan yang sudah DITUTUP / SELESAI.');
+        Swal.warning('Cetak PDF Belum Tersedia', 'Cetak PDF Berita Acara hanya tersedia untuk pemilihan yang sudah DITUTUP / SELESAI.');
       }
     } else {
-      alert(`Mengekspor hasil pemilihan "${selectedElection?.title}" dalam format ${format}...`);
+      Swal.info('Ekspor Data', `Mengekspor hasil pemilihan "${selectedElection?.title}" dalam format ${format}...`);
     }
   };
 

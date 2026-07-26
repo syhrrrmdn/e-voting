@@ -1,20 +1,25 @@
 import { NextResponse } from 'next/server';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { getAuthUser } from '@/lib/auth';
+import { uploadSchema, validateBody } from '@/lib/validations';
 
 export async function POST(request: Request) {
   const { error, user } = await getAuthUser(['admin', 'election_admin', 'voter']);
   if (error) return error;
 
   try {
-    const { file, folder } = await request.json();
+    const body = await request.json();
 
-    if (!file) {
+    // Zod validation
+    const validation = validateBody(uploadSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, message: 'File (base64 string) harus disertakan' },
+        { success: false, message: validation.message },
         { status: 400 }
       );
     }
+
+    const { file, folder } = validation.data;
 
     // Verify Cloudinary credentials are set
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
@@ -27,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await uploadToCloudinary(file, folder || 'e-voting');
+    const result = await uploadToCloudinary(file, folder);
 
     if (result.success) {
       return NextResponse.json({

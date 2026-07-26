@@ -4,6 +4,8 @@ import { getAuthUser } from '@/lib/auth';
 import Candidate from '@/models/Candidate';
 import Election from '@/models/Election';
 import AuditLog from '@/models/AuditLog';
+import { canAccessElection } from '@/lib/accessControl';
+import { candidateSchema, validateBody } from '@/lib/validations';
 
 // GET - Get candidates for an election
 export async function GET(request: Request) {
@@ -24,8 +26,11 @@ export async function GET(request: Request) {
     const electionIds = Array.from(new Set(candidates.map((c: any) => c.electionId.toString())));
     const elections = await Election.find({ _id: { $in: electionIds } });
     const closedMap: Record<string, boolean> = {};
+    const electionMap: Record<string, any> = {};
     elections.forEach((e: any) => {
-      closedMap[e._id.toString()] = e.status === 'closed';
+      const doc = e.toObject ? e.toObject() : e;
+      closedMap[doc._id.toString()] = doc.status === 'closed';
+      electionMap[doc._id.toString()] = doc;
     });
 
     let formatted: any = candidates.map((c: any) => {
@@ -35,6 +40,15 @@ export async function GET(request: Request) {
       }
       return doc;
     });
+
+    // Filter candidates for election_admin: only show candidates from accessible elections
+    if (user!.role === 'election_admin') {
+      formatted = formatted.filter((c: any) => {
+        const el = electionMap[c.electionId.toString()];
+        if (!el) return false;
+        return canAccessElection(user, el);
+      });
+    }
 
     return NextResponse.json({ success: true, data: formatted });
   } catch (err: any) {
@@ -50,20 +64,31 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
     const body = await request.json();
-    const { name, description, image, electionId } = body;
 
-    if (!name || !electionId) {
+    // Zod validation
+    const validation = validateBody(candidateSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, message: 'Nama kandidat dan ID pemilihan harus diisi.' },
+        { success: false, message: validation.message },
         { status: 400 }
       );
     }
+
+    const { name, description, image, electionId } = validation.data;
 
     const election = await Election.findOne({ _id: electionId, deletedAt: null });
     if (!election) {
       return NextResponse.json(
         { success: false, message: 'Pemilihan tidak ditemukan.' },
         { status: 404 }
+      );
+    }
+
+    // Access check: election_admin must match category + attributes
+    if (!canAccessElection(user, election)) {
+      return NextResponse.json(
+        { success: false, message: 'Anda tidak memiliki akses untuk menambah kandidat pada pemilihan ini.' },
+        { status: 403 }
       );
     }
 
@@ -82,9 +107,7 @@ export async function POST(request: Request) {
       voteCount: 0,
     });
 
-    // Add candidate ref to election
-    election.candidates.push(candidate._id);
-    await election.save();
+    // NOTE: No longer writing to Election.candidates array (single source of truth is Candidate.electionId)
 
     await AuditLog.create({
       userId: user!._id.toString(),

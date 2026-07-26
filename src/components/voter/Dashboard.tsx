@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Badge, Button, StatsCard } from '@/components/ui';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/context/AuthContext';
 import { checkEligibility } from '@/lib/ruleEngine';
 
 export default function VoterDashboard({ onNavigate, onSelectElection }: { onNavigate: (page: string) => void; onSelectElection: (id: string) => void }) {
-  const { data: session } = useSession();
+  const { user: authUser } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [elections, setElections] = useState<any[]>([]);
   const [votes, setVotes] = useState<any[]>([]);
@@ -52,16 +52,16 @@ export default function VoterDashboard({ onNavigate, onSelectElection }: { onNav
 
   if (loading) {
     return (
-      <div className="py-12 flex flex-col items-center justify-center text-slate-500">
-        <div className="w-8 h-8 rounded-full border-2 border-t-indigo-600 border-slate-200 animate-spin mb-3" />
+      <div className="py-16 flex flex-col items-center justify-center text-gray-400">
+        <div className="w-8 h-8 rounded-full border-2 border-t-indigo-600 border-gray-200 animate-spin mb-3" />
         <p className="text-sm font-medium">Memuat data pemilih...</p>
       </div>
     );
   }
 
   const user = profile || {
-    name: session?.user?.name || 'User',
-    email: session?.user?.email || '',
+    name: authUser?.name || 'User',
+    email: authUser?.email || '',
     category: '',
     attributes: {}
   };
@@ -181,24 +181,18 @@ export default function VoterDashboard({ onNavigate, onSelectElection }: { onNav
           </Card>
         </div>
 
-        {/* User Attributes Profile Summary */}
         <div>
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-slate-900">Profil Atribut Anda</h3>
-              <button 
-                onClick={() => onNavigate('profile')}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
-              >
-                Lihat Lengkap
-              </button>
+              <h3 className="text-sm font-semibold text-gray-900">Profil Atribut Anda</h3>
+              <button onClick={() => onNavigate('profile')} className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 cursor-pointer">Lihat Lengkap</button>
             </div>
-            <p className="text-xs text-slate-400 mb-4">Data atribut Anda di bawah digunakan untuk memvalidasi eligibility pemilih secara real-time.</p>
-            <div className="space-y-3">
+            <p className="text-xs text-gray-400 mb-4">Data atribut Anda digunakan untuk memvalidasi kelayakan sebagai pemilih secara real-time.</p>
+            <div className="space-y-2">
               {Object.entries(userAttributes).map(([label, val]) => (
-                <div key={label} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0 text-sm">
-                  <span className="text-slate-500 font-medium">{label}</span>
-                  <span className="text-slate-900 font-semibold">{val}</span>
+                <div key={label} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0 text-sm">
+                  <span className="text-gray-500 font-medium">{label}</span>
+                  <span className="text-gray-900 font-semibold">{val}</span>
                 </div>
               ))}
             </div>

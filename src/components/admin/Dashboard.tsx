@@ -38,8 +38,8 @@ export default function AdminDashboard({ onNavigate }: { onNavigate?: (p: string
 
   if (loading) {
     return (
-      <div className="py-12 flex flex-col items-center justify-center text-slate-500">
-        <div className="w-8 h-8 rounded-full border-2 border-t-indigo-600 border-slate-200 animate-spin mb-3" />
+      <div className="py-16 flex flex-col items-center justify-center text-gray-400">
+        <div className="w-8 h-8 rounded-full border-2 border-t-indigo-600 border-gray-200 animate-spin mb-3" />
         <p className="text-sm font-medium">Memuat data dashboard...</p>
       </div>
     );
@@ -71,28 +71,28 @@ export default function AdminDashboard({ onNavigate }: { onNavigate?: (p: string
       {/* Charts & Recent */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <Card className="lg:col-span-2">
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Suara per Pemilihan</h3>
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Suara per Pemilihan</h3>
           {electionsWithVotes.length > 0 ? (
             <BarChart data={electionsWithVotes.map(e => ({ label: e.title.split(' ').slice(0, 3).join(' '), value: e.totalVotes }))} />
           ) : (
-            <p className="text-slate-400 text-center py-12 text-sm">Belum ada suara masuk di pemilihan manapun.</p>
+            <p className="text-gray-400 text-center py-12 text-sm">Belum ada suara masuk di pemilihan manapun.</p>
           )}
         </Card>
         <Card>
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Pemilihan berdasarkan Status</h3>
-          <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Pemilihan berdasarkan Status</h3>
+          <div className="space-y-4">
             {[
-              { label: 'Aktif', count: s.electionsByStatus.active || 0, color: 'bg-emerald-500', pct: s.totalElections ? ((s.electionsByStatus.active || 0) / s.totalElections) * 100 : 0 },
-              { label: 'Diterbitkan', count: s.electionsByStatus.published || 0, color: 'bg-indigo-500', pct: s.totalElections ? ((s.electionsByStatus.published || 0) / s.totalElections) * 100 : 0 },
-              { label: 'Draf', count: s.electionsByStatus.draft || 0, color: 'bg-amber-500', pct: s.totalElections ? ((s.electionsByStatus.draft || 0) / s.totalElections) * 100 : 0 },
-              { label: 'Selesai', count: s.electionsByStatus.closed || 0, color: 'bg-slate-400', pct: s.totalElections ? ((s.electionsByStatus.closed || 0) / s.totalElections) * 100 : 0 },
+              { label: 'Aktif',      count: s.electionsByStatus.active    || 0, color: 'bg-emerald-500', pct: s.totalElections ? ((s.electionsByStatus.active    || 0) / s.totalElections) * 100 : 0 },
+              { label: 'Diterbitkan',count: s.electionsByStatus.published || 0, color: 'bg-indigo-500',  pct: s.totalElections ? ((s.electionsByStatus.published || 0) / s.totalElections) * 100 : 0 },
+              { label: 'Draf',       count: s.electionsByStatus.draft     || 0, color: 'bg-amber-400',   pct: s.totalElections ? ((s.electionsByStatus.draft     || 0) / s.totalElections) * 100 : 0 },
+              { label: 'Selesai',    count: s.electionsByStatus.closed    || 0, color: 'bg-gray-300',    pct: s.totalElections ? ((s.electionsByStatus.closed    || 0) / s.totalElections) * 100 : 0 },
             ].map((statusItem) => (
               <div key={statusItem.label}>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-slate-600">{statusItem.label}</span>
-                  <span className="font-semibold text-slate-900">{statusItem.count}</span>
+                <div className="flex items-center justify-between text-sm mb-1.5">
+                  <span className="text-gray-600 font-medium">{statusItem.label}</span>
+                  <span className="font-bold text-gray-900">{statusItem.count}</span>
                 </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div className={`h-full ${statusItem.color} rounded-full transition-all duration-700`} style={{ width: `${statusItem.pct}%` }} />
                 </div>
               </div>
@@ -101,46 +101,42 @@ export default function AdminDashboard({ onNavigate }: { onNavigate?: (p: string
         </Card>
       </div>
 
-      {/* Recent Activity */}
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-slate-900">Aktivitas Sistem Terbaru</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Aktivitas Sistem Terbaru</h3>
           {onNavigate && (
-            <button 
-              onClick={() => onNavigate('audit')} 
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
-            >
-              Lihat Semua
+            <button onClick={() => onNavigate('audit')} className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 cursor-pointer">
+              Lihat Semua →
             </button>
           )}
         </div>
-        <div className="space-y-3">
+        <div className="space-y-1">
           {s.recentLogs.length > 0 ? (
             s.recentLogs.slice(0, 6).map((log: any) => (
-              <div key={log._id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
+              <div key={log._id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                   log.action === 'CREATE' ? 'bg-emerald-100 text-emerald-600' :
                   log.action === 'UPDATE' ? 'bg-blue-100 text-blue-600' :
                   log.action === 'DELETE' ? 'bg-red-100 text-red-600' :
-                  log.action === 'VOTE' ? 'bg-indigo-100 text-indigo-600' :
-                  log.action === 'LOGIN' ? 'bg-cyan-100 text-cyan-600' :
+                  log.action === 'VOTE'   ? 'bg-indigo-100 text-indigo-600' :
+                  log.action === 'LOGIN'  ? 'bg-teal-100 text-teal-600' :
                   'bg-amber-100 text-amber-600'
                 }`}>
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-700">{log.description}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-slate-400">{log.userName}</span>
-                    <span className="text-slate-300">·</span>
-                    <span className="text-xs text-slate-400">{new Date(log.timestamp).toLocaleDateString('id-ID')}</span>
+                  <p className="text-sm text-gray-700">{log.description}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-gray-400">{log.userName}</span>
+                    <span className="text-gray-200">·</span>
+                    <span className="text-xs text-gray-400">{new Date(log.timestamp).toLocaleDateString('id-ID')}</span>
                     <Badge color={log.action==='CREATE'?'green':log.action==='DELETE'?'red':log.action==='VOTE'?'indigo':log.action==='LOGIN'?'cyan':'blue'}>{log.action}</Badge>
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-slate-400 text-center py-6 text-sm">Tidak ada aktivitas sistem terbaru.</p>
+            <p className="text-gray-400 text-center py-6 text-sm">Tidak ada aktivitas sistem terbaru.</p>
           )}
         </div>
       </Card>

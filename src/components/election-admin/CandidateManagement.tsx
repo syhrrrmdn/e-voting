@@ -1,6 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import NextImage from 'next/image';
 import { PageHeader, Card, Button, Modal, Input, Textarea, Select } from '@/components/ui';
+import Swal from '@/lib/swal';
 
 export default function CandidateManagement({ selectedElectionId }: { selectedElectionId?: string }) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -18,7 +20,8 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [mainError, setMainError] = useState('');
+  const [formError, setFormError] = useState('');
 
   // Fetch all elections
   const fetchElections = async () => {
@@ -40,17 +43,17 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
   const fetchCandidates = async () => {
     if (!selectedElection) return;
     setLoading(true);
-    setError('');
+    setMainError('');
     try {
       const res = await fetch(`/api/candidates?electionId=${selectedElection}`);
       const json = await res.json();
       if (json.success && json.data) {
         setCandidates(json.data);
       } else {
-        setError(json.message || 'Gagal memuat kandidat');
+        setMainError(json.message || 'Gagal memuat daftar kandidat');
       }
     } catch (err) {
-      setError('Gagal menghubungkan ke server');
+      setMainError('Gagal menghubungkan ke server');
     } finally {
       setLoading(false);
     }
@@ -69,7 +72,7 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
     setName('');
     setDescription('');
     setImageUrl('');
-    setError('');
+    setFormError('');
     setModalOpen(true);
   };
 
@@ -78,8 +81,41 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
     setName(candidate.name);
     setDescription(candidate.description || '');
     setImageUrl(candidate.image || '');
-    setError('');
+    setFormError('');
     setModalOpen(true);
+  };
+
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,50 +123,54 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      setError('Ukuran file maksimal adalah 5MB');
+      setFormError('Ukuran foto melebihi batas maksimal (5 MB). Silakan pilih foto dengan ukuran lebih kecil.');
       return;
     }
 
     setUploading(true);
-    setError('');
+    setFormError('');
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      const base64Str = reader.result as string;
-      try {
-        const uploadRes = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file: base64Str, folder: 'candidates' }),
-        });
-        const uploadJson = await uploadRes.json();
+    try {
+      // Compress image client-side to ensure fast & reliable upload
+      const base64Str = await compressImage(file);
 
-        if (uploadJson.success) {
-          setImageUrl(uploadJson.url);
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: base64Str, folder: 'candidates' }),
+      });
+      const uploadJson = await uploadRes.json();
+
+      if (uploadJson.success) {
+        setImageUrl(uploadJson.url);
+        setFormError('');
+      } else {
+        const detailErr = uploadJson.error?.error?.message || uploadJson.error?.message || uploadJson.message;
+        if (detailErr && detailErr.toLowerCase().includes('timeout')) {
+          setFormError('Koneksi waktu habis (Timeout). Koneksi internet lambat atau Cloudinary lambat merespons. Silakan coba lagi.');
         } else {
-          setError(uploadJson.message || 'Gagal mengunggah foto ke Cloudinary');
+          setFormError(detailErr || 'Gagal mengunggah foto kandidat. Silakan periksa koneksi internet Anda.');
         }
-      } catch (err) {
-        setError('Terjadi kesalahan saat mengunggah berkas');
-      } finally {
-        setUploading(false);
       }
-    };
+    } catch (err) {
+      setFormError('Terjadi kesalahan saat memproses foto kandidat. Silakan gunakan format gambar JPG/PNG/WEBP.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setError('Nama kandidat wajib diisi');
+      setFormError('Nama kandidat / pasangan calon wajib diisi.');
       return;
     }
     if (!selectedElection) {
-      setError('Pilih pemilihan terlebih dahulu');
+      setFormError('Pilih pemilihan terlebih dahulu.');
       return;
     }
 
     setSaving(true);
-    setError('');
+    setFormError('');
 
     try {
       const url = editingCandidate 
@@ -156,18 +196,20 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
       if (json.success) {
         setModalOpen(false);
         fetchCandidates();
+        Swal.success('Berhasil!', editingCandidate ? 'Data kandidat berhasil diperbarui.' : 'Kandidat baru berhasil ditambahkan.');
       } else {
-        setError(json.message || 'Gagal menyimpan data kandidat');
+        setFormError(json.message || 'Gagal menyimpan data kandidat. Silakan periksa kelengkapan formulir Anda.');
       }
     } catch (err) {
-      setError('Gagal menghubungkan ke server');
+      setFormError('Gagal menghubungkan ke server.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus kandidat ini?')) return;
+    const confirmResult = await Swal.confirm('Hapus Kandidat?', 'Apakah Anda yakin ingin menghapus kandidat ini?', 'Ya, Hapus');
+    if (!confirmResult.isConfirmed) return;
     
     try {
       const res = await fetch(`/api/candidates/${id}`, {
@@ -176,11 +218,12 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
       const json = await res.json();
       if (json.success) {
         fetchCandidates();
+        Swal.success('Terhapus!', 'Kandidat berhasil dihapus.');
       } else {
-        alert(json.message || 'Gagal menghapus kandidat');
+        Swal.error('Gagal', json.message || 'Gagal menghapus kandidat');
       }
     } catch (err) {
-      alert('Gagal menghubungkan ke server');
+      Swal.error('Error', 'Gagal menghubungkan ke server');
     }
   };
 
@@ -216,9 +259,9 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
         </div>
       </Card>
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium">
-          {error}
+      {mainError && (
+        <div className="mb-4 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium">
+          {mainError}
         </div>
       )}
 
@@ -242,7 +285,7 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
                 {/* Candidate Photo */}
                 <div className="aspect-[4/3] w-full rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 font-medium text-lg relative overflow-hidden mb-4 border border-slate-200">
                   {cand.image ? (
-                    <img src={cand.image} alt={cand.name} className="absolute inset-0 w-full h-full object-cover" />
+                    <NextImage src={cand.image} alt={cand.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
                   ) : (
                     <>
                       <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-cyan-500/10" />
@@ -270,6 +313,7 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
         </div>
       )}
 
+      {/* Candidate Modal Form */}
       <Modal 
         open={modalOpen} 
         onClose={() => setModalOpen(false)} 
@@ -285,32 +329,51 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
         }
       >
         <div className="space-y-4">
+          {/* Modal Error Notification */}
+          {formError && (
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm flex items-start gap-2.5 animate-slide-in font-medium">
+              <svg className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span className="leading-relaxed">{formError}</span>
+            </div>
+          )}
+
           <Input 
             label="Nama Kandidat / Pasangan Calon" 
             value={name} 
             onChange={(e) => setName(e.target.value)} 
             placeholder="Contoh: Ahmad Rizky & Putri Handayani" 
           />
+
           <Textarea 
             label="Visi & Misi / Deskripsi" 
             value={description} 
             onChange={(e) => setDescription(e.target.value)} 
             placeholder="Tuliskan visi misi singkat kandidat..." 
           />
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Foto Kandidat</label>
             <div className="flex gap-4 items-center">
               {imageUrl && (
-                <img src={imageUrl} alt="Pratinjau" className="w-20 h-20 rounded-lg object-cover border border-slate-200 shrink-0" />
+                <NextImage src={imageUrl} alt="Pratinjau" width={80} height={80} className="w-20 h-20 rounded-lg object-cover border border-slate-200 shrink-0" />
               )}
-              <label className="flex-1 border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-lg p-6 flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">
-                <svg className="w-8 h-8 mb-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <label className="flex-1 border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-lg p-5 flex flex-col items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer bg-slate-50/50 hover:bg-slate-50">
+                <svg className="w-7 h-7 mb-1.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span className="text-xs font-semibold">{uploading ? 'Mengunggah...' : 'Klik untuk memilih/unggah foto'}</span>
+                <span className="text-xs font-semibold">{uploading ? 'Mengunggah foto...' : 'Klik untuk memilih / unggah foto'}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={uploading} />
               </label>
             </div>
+            {/* Helper text for max size */}
+            <p className="mt-2 text-xs text-slate-500 font-medium flex items-center gap-1">
+              <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Batas maksimal ukuran foto: <strong>5 MB</strong> (Format: JPG, PNG, WEBP)
+            </p>
           </div>
         </div>
       </Modal>

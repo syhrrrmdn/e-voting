@@ -1,10 +1,10 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Avatar, Badge, Input, Button } from '@/components/ui';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Profile() {
-  const { data: session, update } = useSession();
+  const { user: authUser, signOut, refreshProfile } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [attributes, setAttributes] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -98,7 +98,7 @@ export default function Profile() {
           if (updateJson.success) {
             setProfile(updateJson.data);
             setSuccess('Foto profil berhasil diperbarui!');
-            await update();
+            await refreshProfile();
           } else {
             setError(updateJson.message || 'Gagal menyimpan foto profil ke database');
           }
@@ -134,7 +134,7 @@ export default function Profile() {
       if (json.success) {
         setProfile(json.data);
         setSuccess('Profil berhasil disimpan!');
-        await update();
+        await refreshProfile();
       } else {
         setError(json.message || 'Gagal memperbarui profil');
       }
@@ -155,11 +155,11 @@ export default function Profile() {
   }
 
   const user = profile || {
-    name: session?.user?.name || 'User',
-    email: session?.user?.email || '',
-    role: (session?.user as any)?.role || 'voter',
+    name: authUser?.name || 'User',
+    email: authUser?.email || '',
+    role: authUser?.role || 'voter',
     category: '',
-    avatar: session?.user?.image || '',
+    avatar: authUser?.image || '',
     attributes: {}
   };
 
@@ -308,7 +308,7 @@ export default function Profile() {
               variant="ghost" 
               size="sm" 
               className="text-red-500 hover:bg-red-50 cursor-pointer font-semibold"
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={() => signOut()}
             >
               Logout
             </Button>

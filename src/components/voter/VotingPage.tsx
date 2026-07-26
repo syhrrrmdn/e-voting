@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { PageHeader, Card, Button, Modal, Badge } from '@/components/ui';
 
 export default function VotingPage({ 
@@ -184,7 +185,7 @@ export default function VotingPage({
                     {/* Candidate Image */}
                     <div className="aspect-[4/3] w-full rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 mb-4 border border-slate-100 relative overflow-hidden">
                       {cand.image ? (
-                        <img src={cand.image} alt={cand.name} className="absolute inset-0 w-full h-full object-cover" />
+                        <Image src={cand.image} alt={cand.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
                       ) : (
                         <>
                           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-cyan-500/5" />

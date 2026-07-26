@@ -14,7 +14,7 @@ export interface ISystemSettings {
   minVoterThreshold: number;
   primaryColor: string;
   logoUrl?: string; // Cloudinary secure URL
-  faviconUrl?: string; // Cloudinary secure URL
+  faviconUrl?: string; // Plain URL string for favicon (no JSON)
   createdAt: Date | string;
   updatedAt: Date | string;
 }

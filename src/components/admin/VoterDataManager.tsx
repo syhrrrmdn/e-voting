@@ -1,12 +1,14 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Table, Badge, Button, Modal, Input, Select, SearchInput, Avatar, Pagination, type TableColumn } from '@/components/ui';
+import Swal from '@/lib/swal';
 
 export default function VoterDataManager() {
   const [users, setUsers] = useState<any[]>([]);
   const [attributes, setAttributes] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editedAttributes, setEditedAttributes] = useState<Record<string, string | number>>({});
@@ -26,11 +28,11 @@ export default function VoterDataManager() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const fetchVoters = async (page: number = currentPage, searchQuery: string = search, pageLimit: number = limit) => {
+  const fetchUsersData = async (page: number = currentPage, searchQuery: string = search, pageLimit: number = limit) => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      params.set('role', 'voter');
+      if (roleFilter !== 'all') params.set('role', roleFilter);
       if (searchQuery) params.set('search', searchQuery);
       params.set('page', String(page));
       params.set('limit', String(pageLimit));
@@ -43,7 +45,7 @@ export default function VoterDataManager() {
         setTotalItems(json.pagination?.total || 0);
       }
     } catch (err) {
-      console.error('Gagal memuat pemilih:', err);
+      console.error('Gagal memuat data pengguna:', err);
     } finally {
       setLoading(false);
     }
@@ -66,14 +68,18 @@ export default function VoterDataManager() {
 
   useEffect(() => {
     fetchStaticMeta();
-    fetchVoters(1, '', limit);
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchUsersData(1, search, limit);
+  }, [roleFilter]);
 
   // Debounce search
   useEffect(() => {
     const timeout = setTimeout(() => {
       setCurrentPage(1);
-      fetchVoters(1, search, limit);
+      fetchUsersData(1, search, limit);
     }, 400);
     return () => clearTimeout(timeout);
   }, [search]);
@@ -98,15 +104,16 @@ export default function VoterDataManager() {
       const json = await res.json();
 
       if (json.success) {
-        showNotification(`Data atribut ${selectedUser.name} berhasil diperbarui.`);
+        showNotification(`Kategori & atribut ${selectedUser.name} berhasil diperbarui.`);
         setEditModalOpen(false);
         setSelectedUser(null);
-        fetchVoters(currentPage, search, limit);
+        fetchUsersData(currentPage, search, limit);
+        Swal.success('Berhasil!', `Atribut & Kategori ${selectedUser.name} berhasil diperbarui.`);
       } else {
-        alert(json.message || 'Gagal memperbarui data pemilih');
+        Swal.error('Gagal', json.message || 'Gagal memperbarui data pengguna');
       }
     } catch (err) {
-      alert('Gagal menghubungkan ke server');
+      Swal.error('Error', 'Gagal menghubungkan ke server');
     } finally {
       setSaving(false);
     }
@@ -133,7 +140,7 @@ export default function VoterDataManager() {
   const columns: TableColumn<any>[] = [
     {
       key: 'name',
-      label: 'Pemilih',
+      label: 'Pengguna',
       render: (r) => (
         <div className="flex items-center gap-3">
           <Avatar name={r.name} src={r.avatar} size="sm" />
@@ -145,22 +152,26 @@ export default function VoterDataManager() {
       )
     },
     {
+      key: 'role',
+      label: 'Peran',
+      render: (r) => (
+        <Badge color={r.role === 'admin' ? 'indigo' : r.role === 'election_admin' ? 'green' : 'blue'}>
+          {r.role === 'admin' ? 'Admin Sistem' : r.role === 'election_admin' ? 'Admin Pemilihan' : 'Pemilih'}
+        </Badge>
+      )
+    },
+    {
       key: 'category',
       label: 'Kategori',
       render: (r) => {
         const catKey = r.category || '';
         if (!catKey) return <Badge color="gray">Belum Diatur</Badge>;
-        const colorMap: Record<string, 'indigo' | 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'cyan'> = { 
-          mahasiswa: 'blue', 
-          dosen: 'yellow', 
-          staff: 'green' 
-        };
-        return <Badge color={colorMap[catKey] || 'indigo'}>{getCategoryLabel(catKey)}</Badge>;
+        return <Badge color="cyan">{getCategoryLabel(catKey)}</Badge>;
       }
     },
     {
       key: 'jurusan',
-      label: 'Info Utama',
+      label: 'Info Atribut',
       render: (r) => {
         const cat = r.category || '';
         if (cat === 'mahasiswa') {
@@ -199,7 +210,7 @@ export default function VoterDataManager() {
       label: 'Aksi',
       render: (r) => (
         <Button variant="secondary" size="sm" onClick={() => handleEditClick(r)}>
-          Kelola Data
+          Kelola Atribut
         </Button>
       )
     }
@@ -220,8 +231,8 @@ export default function VoterDataManager() {
       )}
 
       <PageHeader
-        title="Manajemen Data Pemilih"
-        subtitle="Kelola kategori dan atribut dinamis pengguna untuk validasi Voter Rule Engine"
+        title="Manajemen Atribut & Kategori Pengguna"
+        subtitle="Atur kategori dan atribut dinamis untuk Pemilih maupun Admin Pemilihan agar data terkelola dengan baik"
       />
 
       <Card padding={false}>
@@ -230,14 +241,24 @@ export default function VoterDataManager() {
             <SearchInput
               value={search}
               onChange={setSearch}
-              placeholder="Cari pemilih berdasarkan nama atau email..."
+              placeholder="Cari berdasarkan nama atau email..."
             />
           </div>
+          <Select
+            options={[
+              { value: 'all', label: 'Semua Peran' },
+              { value: 'election_admin', label: 'Admin Pemilihan' },
+              { value: 'voter', label: 'Pemilih' },
+              { value: 'admin', label: 'Admin Sistem' },
+            ]}
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+          />
         </div>
         {loading ? (
           <div className="py-12 flex flex-col items-center justify-center text-slate-500">
             <div className="w-8 h-8 rounded-full border-2 border-t-indigo-600 border-slate-200 animate-spin mb-3" />
-            <p className="text-sm font-medium">Memuat data pemilih...</p>
+            <p className="text-sm font-medium">Memuat data pengguna...</p>
           </div>
         ) : (
           <div className="p-4">
@@ -247,14 +268,14 @@ export default function VoterDataManager() {
               totalPages={totalPages}
               onPageChange={(page) => {
                 setCurrentPage(page);
-                fetchVoters(page, search, limit);
+                fetchUsersData(page, search, limit);
               }}
               totalItems={totalItems}
               limit={limit}
               onLimitChange={(newLimit) => {
                 setLimit(newLimit);
                 setCurrentPage(1);
-                fetchVoters(1, search, newLimit);
+                fetchUsersData(1, search, newLimit);
               }}
             />
           </div>
@@ -266,7 +287,7 @@ export default function VoterDataManager() {
         <Modal
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
-          title={`Kelola Data Pemilih: ${selectedUser.name}`}
+          title={`Kelola Kategori & Atribut: ${selectedUser.name}`}
           size="md"
           footer={
             <>
@@ -276,12 +297,17 @@ export default function VoterDataManager() {
           }
         >
           <div className="space-y-4">
-            <div className="bg-slate-50 p-3 rounded-lg flex items-center gap-3 mb-2">
-              <Avatar name={selectedUser.name} src={selectedUser.avatar} size="md" />
-              <div>
-                <p className="text-sm font-bold text-slate-800">{selectedUser.name}</p>
-                <p className="text-xs text-slate-500">{selectedUser.email}</p>
+            <div className="bg-slate-50 p-3 rounded-lg flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-3">
+                <Avatar name={selectedUser.name} src={selectedUser.avatar} size="md" />
+                <div>
+                  <p className="text-sm font-bold text-slate-800">{selectedUser.name}</p>
+                  <p className="text-xs text-slate-500">{selectedUser.email}</p>
+                </div>
               </div>
+              <Badge color={selectedUser.role === 'admin' ? 'indigo' : selectedUser.role === 'election_admin' ? 'green' : 'blue'}>
+                {selectedUser.role === 'admin' ? 'Admin Sistem' : selectedUser.role === 'election_admin' ? 'Admin Pemilihan' : 'Pemilih'}
+              </Badge>
             </div>
 
             {/* Category Selector */}
@@ -296,20 +322,20 @@ export default function VoterDataManager() {
                 ]}
               />
               <p className="text-[11px] text-indigo-500 mt-1 font-medium">
-                Mengubah kategori akan menampilkan atribut input yang sesuai di bawah.
+                Kategori ini menentukan grup/posisi pengguna (seperti Dosen, Staff, atau Mahasiswa).
               </p>
             </div>
 
             {!editedCategory && (
               <div className="py-6 text-center text-slate-400 text-sm italic border border-dashed border-slate-200 rounded-lg">
-                Pilih kategori pengguna terlebih dahulu untuk melihat atribut yang tersedia.
+                Pilih kategori pengguna terlebih dahulu untuk mengatur nilai atribut dinamis.
               </div>
             )}
 
             {editedCategory && (
               <>
                 <p className="text-xs text-slate-400 italic">
-                  * Atribut di bawah ini otomatis disesuaikan dengan kategori <strong>{getCategoryLabel(editedCategory)}</strong>. Data digunakan oleh Voter Rule Engine.
+                  * Atribut di bawah ini otomatis disesuaikan dengan kategori <strong>{getCategoryLabel(editedCategory)}</strong>.
                 </p>
 
                 <div className="grid grid-cols-1 gap-4 pt-2">
@@ -348,7 +374,7 @@ export default function VoterDataManager() {
                     );
                   }) : (
                     <div className="py-4 text-center text-slate-400 text-sm italic">
-                      Belum ada atribut yang ditargetkan ke kategori ini.
+                      Belum ada atribut khusus yang ditargetkan ke kategori ini.
                     </div>
                   )}
                 </div>

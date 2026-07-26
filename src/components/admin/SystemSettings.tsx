@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Button, Input, Select, Badge } from '@/components/ui';
+import Swal from '@/lib/swal';
 
 export default function SystemSettings() {
   const [settings, setSettings] = useState<any>({
@@ -15,7 +16,7 @@ export default function SystemSettings() {
     minVoterThreshold: 50,
     primaryColor: '#4f46e5',
     logoUrl: '',
-    faviconUrl: ''
+    faviconUrl: '',
   });
 
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,7 @@ export default function SystemSettings() {
     success: false,
     status: 'Checking...',
     message: '',
-    dbName: ''
+    dbName: '',
   });
 
   const showNotification = (msg: string) => {
@@ -59,7 +60,7 @@ export default function SystemSettings() {
   };
 
   const checkDatabase = async () => {
-    setDbStatus(prev => ({ ...prev, loading: true }));
+    setDbStatus((prev) => ({ ...prev, loading: true }));
     try {
       const res = await fetch('/api/db-check');
       const data = await res.json();
@@ -69,7 +70,7 @@ export default function SystemSettings() {
           success: true,
           status: data.status,
           message: data.message,
-          dbName: data.dbName
+          dbName: data.dbName,
         });
       } else {
         setDbStatus({
@@ -78,7 +79,7 @@ export default function SystemSettings() {
           status: 'Disconnected',
           message: data.message || 'Gagal terhubung ke database',
           dbName: '',
-          error: data.error
+          error: data.error,
         });
       }
     } catch (err: any) {
@@ -88,7 +89,7 @@ export default function SystemSettings() {
         status: 'Error',
         message: 'Gagal memanggil API cek database',
         dbName: '',
-        error: err.message
+        error: err.message,
       });
     }
   };
@@ -101,7 +102,7 @@ export default function SystemSettings() {
   const handleUpdateField = (key: string, val: any) => {
     setSettings((prev: any) => ({
       ...prev,
-      [key]: val
+      [key]: val,
     }));
   };
 
@@ -111,26 +112,29 @@ export default function SystemSettings() {
       const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify(settings),
       });
       const json = await res.json();
       if (json.success) {
         showNotification('Pengaturan sistem berhasil disimpan.');
+        Swal.success('Tersimpan!', 'Pengaturan sistem berhasil diperbarui.');
         setSettings(json.data);
       } else {
-        alert(json.message || 'Gagal menyimpan pengaturan');
+        Swal.error('Gagal', json.message || 'Gagal menyimpan pengaturan');
       }
     } catch (err) {
-      alert('Gagal menghubungkan ke server');
+      Swal.error('Error', 'Gagal menghubungkan ke server');
     } finally {
       setSaving(false);
     }
   };
 
+
+
   if (loading) {
     return (
-      <div className="py-12 flex flex-col items-center justify-center text-slate-500">
-        <div className="w-8 h-8 rounded-full border-2 border-t-indigo-600 border-slate-200 animate-spin mb-3" />
+      <div className="py-16 flex flex-col items-center justify-center text-gray-400">
+        <div className="w-8 h-8 rounded-full border-2 border-t-indigo-600 border-gray-200 animate-spin mb-3" />
         <p className="text-sm font-medium">Memuat pengaturan sistem...</p>
       </div>
     );
@@ -149,13 +153,12 @@ export default function SystemSettings() {
 
       <PageHeader title="Pengaturan Sistem" subtitle="Konfigurasi global sistem e-voting" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* Connection Diagnostics Card */}
-        <Card className="lg:col-span-2 border border-slate-200">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4 mb-4">
+        <Card className="lg:col-span-2 border border-gray-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-4 mb-4">
             <div>
-              <h3 className="text-base font-bold text-slate-900">Status Koneksi Database</h3>
-              <p className="text-xs text-slate-500">Hasil diagnosis konektivitas ke database Supabase / PostgreSQL</p>
+              <h3 className="text-base font-bold text-gray-900">Status Koneksi Database</h3>
+              <p className="text-xs text-gray-500">Hasil diagnosis konektivitas ke database Supabase / PostgreSQL</p>
             </div>
             <Button variant="secondary" size="sm" onClick={checkDatabase} disabled={dbStatus.loading}>
               {dbStatus.loading ? 'Menghubungkan...' : 'Uji Koneksi Ulang'}
@@ -163,9 +166,9 @@ export default function SystemSettings() {
           </div>
 
           {dbStatus.loading ? (
-            <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl animate-pulse">
-              <div className="w-3.5 h-3.5 bg-slate-300 rounded-full"></div>
-              <span className="text-sm font-semibold text-slate-500">Memeriksa status koneksi ke Supabase...</span>
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl animate-pulse">
+              <div className="w-3.5 h-3.5 bg-gray-300 rounded-full"></div>
+              <span className="text-sm font-semibold text-gray-500">Memeriksa status koneksi ke Supabase...</span>
             </div>
           ) : dbStatus.success ? (
             <div className="space-y-4">
@@ -182,17 +185,17 @@ export default function SystemSettings() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <span className="block text-[11px] font-semibold text-slate-400 uppercase">Nama Database</span>
-                  <span className="text-sm font-bold text-slate-700">{dbStatus.dbName || 'Supabase PostgreSQL'}</span>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <span className="block text-[11px] font-semibold text-gray-400 uppercase">Nama Database</span>
+                  <span className="text-sm font-bold text-gray-700">{dbStatus.dbName || 'Supabase PostgreSQL'}</span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <span className="block text-[11px] font-semibold text-slate-400 uppercase">Provider Database</span>
-                  <span className="text-sm font-bold text-slate-700">Supabase</span>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <span className="block text-[11px] font-semibold text-gray-400 uppercase">Provider Database</span>
+                  <span className="text-sm font-bold text-gray-700">Supabase</span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <span className="block text-[11px] font-semibold text-slate-400 uppercase">Driver</span>
-                  <span className="text-sm font-bold text-slate-700">Supabase JS SDK / PostgREST</span>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <span className="block text-[11px] font-semibold text-gray-400 uppercase">Driver</span>
+                  <span className="text-sm font-bold text-gray-700">Supabase JS SDK / PostgREST</span>
                 </div>
               </div>
             </div>
@@ -218,39 +221,39 @@ export default function SystemSettings() {
           )}
         </Card>
 
-        {/* General Settings */}
         <Card className="lg:col-span-2">
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Umum</h3>
+          <h3 className="text-base font-semibold text-gray-900 mb-4">Umum</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input 
-              label="Nama Platform" 
-              value={settings.appName} 
-              onChange={e => handleUpdateField('appName', e.target.value)} 
+            <Input
+              label="Nama Platform"
+              value={settings.appName}
+              onChange={(e) => handleUpdateField('appName', e.target.value)}
             />
-            <Input 
-              label="Tagline" 
-              value={settings.tagline} 
-              onChange={e => handleUpdateField('tagline', e.target.value)} 
+            <Input
+              label="Tagline"
+              value={settings.tagline}
+              onChange={(e) => handleUpdateField('tagline', e.target.value)}
             />
             <div className="md:col-span-2">
-              <Select 
-                label="Timezone (Zona Waktu Sistem)" 
+              <Select
+                label="Timezone (Zona Waktu Sistem)"
                 value={settings.timezone}
-                onChange={e => handleUpdateField('timezone', e.target.value)}
+                onChange={(e) => handleUpdateField('timezone', e.target.value)}
                 options={[
                   { value: 'Asia/Jakarta', label: 'WIB - Waktu Indonesia Barat (UTC+7)' },
                   { value: 'Asia/Makassar', label: 'WITA - Waktu Indonesia Tengah (UTC+8)' },
-                  { value: 'Asia/Jayapura', label: 'WIT - Waktu Indonesia Timur (UTC+9)' }
-                ]} 
+                  { value: 'Asia/Jayapura', label: 'WIT - Waktu Indonesia Timur (UTC+9)' },
+                ]}
               />
-              <p className="text-xs text-slate-500 mt-1.5">
+              <p className="text-xs text-gray-500 mt-1.5">
                 💡 <strong>Cara Kerja Timezone:</strong> Pengaturan ini menentukan rujukan zona waktu resmi untuk pencatatan dan validasi waktu mulai (startTime) serta waktu selesai (endTime) dari setiap sesi pemilihan (election) yang dibuat di seluruh platform.
               </p>
             </div>
           </div>
-          <div className="mt-6">
+
+          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
             <Button onClick={handleSaveSettings} disabled={saving}>
-              {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              {saving ? 'Menyimpan...' : 'Simpan Semua Pengaturan'}
             </Button>
           </div>
         </Card>

@@ -340,6 +340,10 @@ export class BaseModel {
     return createQueryPromise(() => builder.exec(), builder);
   }
 
+  findById(id: string): any {
+    return this.findOne({ _id: id });
+  }
+
   async countDocuments(filter: any = {}): Promise<number> {
     let query = supabase.from(this.tableName).select('*', { count: 'exact', head: true });
     const tempBuilder = new SupabaseQueryBuilder(this.tableName);
@@ -482,6 +486,21 @@ export class BaseModel {
       [Symbol.toStringTag]: 'Promise',
     };
 
+    proxy.select = (fields: string) => {
+      const selPromise = execFn().then((result) => {
+        if (!result) return null;
+        if (fields) {
+          const fieldList = fields.split(' ');
+          const excludes = fieldList.filter(f => f.startsWith('-')).map(f => f.substring(1));
+          excludes.forEach(field => {
+            delete result[field];
+          });
+        }
+        return result;
+      });
+      return selPromise;
+    };
+
     proxy.populate = (opt: any) => {
       const popPromise = execFn().then(async (result) => {
         if (!result) return null;
@@ -509,6 +528,21 @@ export class BaseModel {
       catch: (onrejected?: any) => promise.catch(onrejected),
       finally: (onfinally?: any) => promise.finally(onfinally),
       [Symbol.toStringTag]: 'Promise',
+    };
+
+    proxy.select = (fields: string) => {
+      const selPromise = execFn().then((result) => {
+        if (!result) return null;
+        if (fields) {
+          const fieldList = fields.split(' ');
+          const excludes = fieldList.filter(f => f.startsWith('-')).map(f => f.substring(1));
+          excludes.forEach(field => {
+            delete result[field];
+          });
+        }
+        return result;
+      });
+      return selPromise;
     };
 
     proxy.populate = (opt: any) => {

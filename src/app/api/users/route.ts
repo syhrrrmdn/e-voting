@@ -3,6 +3,8 @@ import dbConnect from '@/lib/dbConnect';
 import { getAuthUser } from '@/lib/auth';
 import User from '@/models/User';
 import AuditLog from '@/models/AuditLog';
+import { createSupabaseAdminClient } from '@/lib/supabase/server';
+import { createUserSchema, validateBody } from '@/lib/validations';
 
 // GET - Retrieve all users (admin) or filtered list
 export async function GET(request: Request) {
@@ -53,14 +55,17 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
     const body = await request.json();
-    const { name, email, password, role, category, attributes, status, avatar } = body;
 
-    if (!name || !email) {
+    // Zod validation
+    const validation = validateBody(createUserSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, message: 'Nama dan email wajib diisi.' },
+        { success: false, message: validation.message },
         { status: 400 }
       );
     }
+
+    const { name, email, password, role, category, attributes, status, avatar } = validation.data;
 
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) {
@@ -70,14 +75,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const crypto = require('crypto');
+    // Create user in Supabase Auth first
     const rawPassword = password || '123456';
-    const passwordHash = crypto.createHash('sha256').update(rawPassword).digest('hex');
+    const supabaseAdmin = createSupabaseAdminClient();
+    const { error: sbError } = await supabaseAdmin.auth.admin.createUser({
+      email: email.toLowerCase(),
+      password: rawPassword,
+      email_confirm: true,
+      user_metadata: { name, role: role || 'voter', category: category || '' },
+    });
+
+    if (sbError && !sbError.message?.includes('already been registered')) {
+      return NextResponse.json(
+        { success: false, message: `Gagal membuat akun auth: ${sbError.message}` },
+        { status: 400 }
+      );
+    }
 
     const user = await User.create({
       name,
       email: email.toLowerCase(),
-      passwordHash,
+      passwordHash: 'supabase_auth_managed',
       role: role || 'voter',
       category: category || '',
       attributes: attributes || {},

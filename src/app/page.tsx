@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import type { UserRole } from '@/types';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/context/AuthContext';
 
 // Admin System components
 import AdminDashboard from '@/components/admin/Dashboard';
@@ -13,6 +13,7 @@ import DynamicAttributes from '@/components/admin/DynamicAttributes';
 import AdminElectionManagement from '@/components/admin/ElectionManagement';
 import AdminAuditLogs from '@/components/admin/AuditLogs';
 import SystemSettings from '@/components/admin/SystemSettings';
+import AnnouncementManagement from '@/components/admin/AnnouncementManagement';
 
 // Election Admin components
 import ElectionAdminDashboard from '@/components/election-admin/Dashboard';
@@ -28,9 +29,11 @@ import VotingPage from '@/components/voter/VotingPage';
 import VoterResults from '@/components/voter/Results';
 import VoterProfile from '@/components/voter/Profile';
 
+import PublicDashboard from '@/components/public/PublicDashboard';
+
 export default function Page() {
-  const { data: session, status } = useSession();
-  const sessionRole = (session?.user as any)?.role as UserRole;
+  const { user, status } = useAuth();
+  const sessionRole = user?.role as UserRole;
 
   const [role, setRole] = useState<UserRole>('voter');
   const [activePage, setActivePage] = useState<string>('dashboard');
@@ -139,14 +142,9 @@ export default function Page() {
     );
   }
 
-  // Fallback for unauthenticated state (normally redirected by middleware)
+  // Render Public Landing Dashboard for unauthenticated visitors
   if (status === 'unauthenticated') {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 font-sans">
-        <h2 className="text-lg font-bold text-white tracking-wide">Mengarahkan ke Halaman Login...</h2>
-        <p className="mt-1 text-xs text-slate-400">Anda belum masuk.</p>
-      </div>
-    );
+    return <PublicDashboard />;
   }
 
   const handleRoleChange = (newRole: UserRole) => {
@@ -180,6 +178,8 @@ export default function Page() {
             return <DynamicAttributes />;
           case 'elections':
             return <AdminElectionManagement />;
+          case 'announcements':
+            return <AnnouncementManagement />;
           case 'audit':
             return <AdminAuditLogs />;
           case 'settings':
@@ -196,6 +196,8 @@ export default function Page() {
             return <ElectionManagement onNavigate={handlePageChange} onSelectElection={handleElectionChange} />;
           case 'candidates':
             return <CandidateManagement selectedElectionId={selectedElectionId} />;
+          case 'announcements':
+            return <AnnouncementManagement />;
           case 'rules':
             return <VoterRuleEngine />;
           case 'results':

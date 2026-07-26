@@ -1,10 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Table, Badge, Button, Modal, Input, Select, SearchInput, Avatar, Pagination, type TableColumn } from '@/components/ui';
+import Swal from '@/lib/swal';
 import type { UserRole } from '@/types';
 
 export default function UserManagement() {
   const [users, setUsers] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [attributes, setAttributes] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -27,6 +30,8 @@ export default function UserManagement() {
     email: '',
     password: '',
     role: 'voter' as UserRole,
+    category: '',
+    attributes: {} as Record<string, string | number>,
     status: 'active' as 'active' | 'inactive'
   });
   
@@ -38,6 +43,21 @@ export default function UserManagement() {
   const showNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const fetchMeta = async () => {
+    try {
+      const [catRes, attrRes] = await Promise.all([
+        fetch('/api/categories'),
+        fetch('/api/attributes')
+      ]);
+      const catJson = await catRes.json();
+      const attrJson = await attrRes.json();
+      if (catJson.success && catJson.data) setCategories(catJson.data);
+      if (attrJson.success && attrJson.data) setAttributes(attrJson.data);
+    } catch (err) {
+      console.error('Gagal mengambil metadata:', err);
+    }
   };
 
   const fetchUsers = async (page: number = currentPage, pageLimit: number = limit) => {
@@ -64,6 +84,10 @@ export default function UserManagement() {
   };
 
   useEffect(() => {
+    fetchMeta();
+  }, []);
+
+  useEffect(() => {
     setCurrentPage(1);
     fetchUsers(1, limit);
   }, [roleFilter]);
@@ -79,7 +103,7 @@ export default function UserManagement() {
 
   const handleOpenAdd = () => {
     setEditingUser(null);
-    setFormData({ name: '', email: '', password: '', role: 'voter', status: 'active' });
+    setFormData({ name: '', email: '', password: '', role: 'voter', category: '', attributes: {}, status: 'active' });
     setFormModalOpen(true);
   };
 
@@ -90,6 +114,8 @@ export default function UserManagement() {
       email: user.email,
       password: '',
       role: user.role,
+      category: user.category || '',
+      attributes: { ...(user.attributes || {}) },
       status: user.status
     });
     setFormModalOpen(true);
@@ -97,42 +123,56 @@ export default function UserManagement() {
 
   const handleSaveUser = async () => {
     if (!formData.name || !formData.email) {
-      alert('Nama dan Email harus diisi!');
+      Swal.warning('Form Belum Lengkap', 'Nama dan Email wajib diisi!');
       return;
     }
 
     setSaving(true);
     try {
+      const payload: any = {
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        category: formData.category,
+        attributes: formData.attributes,
+        status: formData.status
+      };
+      if (formData.password && formData.password.trim() !== '') {
+        payload.password = formData.password;
+      }
+
       if (editingUser) {
         const res = await fetch(`/api/users/${editingUser._id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         });
         const json = await res.json();
         if (json.success) {
           showNotification(`Pengguna ${formData.name} berhasil diperbarui.`);
+          Swal.success('Berhasil!', `Data pengguna ${formData.name} telah diperbarui.`);
           fetchUsers();
         } else {
-          alert(json.message || 'Gagal memperbarui pengguna');
+          Swal.error('Gagal', json.message || 'Gagal memperbarui pengguna');
         }
       } else {
         const res = await fetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         });
         const json = await res.json();
         if (json.success) {
           showNotification(`Pengguna ${formData.name} berhasil ditambahkan.`);
+          Swal.success('Berhasil!', `Pengguna baru ${formData.name} telah ditambahkan.`);
           fetchUsers();
         } else {
-          alert(json.message || 'Gagal menambahkan pengguna');
+          Swal.error('Gagal', json.message || 'Gagal menambahkan pengguna');
         }
       }
       setFormModalOpen(false);
     } catch (err) {
-      alert('Gagal menghubungkan ke server');
+      Swal.error('Error', 'Gagal menghubungkan ke server');
     } finally {
       setSaving(false);
     }
@@ -150,12 +190,13 @@ export default function UserManagement() {
       const json = await res.json();
       if (json.success) {
         showNotification(`Pengguna ${selectedUser.name} berhasil dihapus.`);
+        Swal.success('Terhapus!', `Pengguna ${selectedUser.name} berhasil dihapus.`);
         fetchUsers();
       } else {
-        alert(json.message || 'Gagal menghapus pengguna');
+        Swal.error('Gagal', json.message || 'Gagal menghapus pengguna');
       }
     } catch (err) {
-      alert('Gagal menghubungkan ke server');
+      Swal.error('Error', 'Gagal menghubungkan ke server');
     }
     setDeleteModalOpen(false);
     setSelectedUser(null);
@@ -177,16 +218,31 @@ export default function UserManagement() {
       const json = await res.json();
       if (json.success) {
         showNotification(`Password untuk pengguna ${selectedUser.name} berhasil di-reset menjadi "123456".`);
+        Swal.success('Password Di-reset', `Password untuk ${selectedUser.name} telah di-reset menjadi "123456".`);
       } else {
-        alert(json.message || 'Gagal reset password');
+        Swal.error('Gagal', json.message || 'Gagal reset password');
       }
     } catch (err) {
-      alert('Gagal menghubungkan ke server');
+      Swal.error('Error', 'Gagal menghubungkan ke server');
     } finally {
       setResetModalOpen(false);
       setSelectedUser(null);
     }
   };
+
+  const handleAttributeChange = (key: string, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      attributes: { ...prev.attributes, [key]: value }
+    }));
+  };
+
+  // Filter attributes by selected category
+  const modalAttributes = attributes.filter(attr => {
+    if (!formData.category) return false;
+    if (!attr.applicableTo || attr.applicableTo.length === 0) return true;
+    return attr.applicableTo.includes(formData.category);
+  });
 
   const columns: TableColumn<any>[] = [
     { 
@@ -366,6 +422,64 @@ export default function UserManagement() {
             value={formData.role}
             onChange={e => setFormData(prev => ({ ...prev, role: e.target.value as UserRole }))}
           />
+
+          <Select 
+            label="Kategori Pengguna" 
+            options={[
+              { value: '', label: '— Pilih Kategori —' },
+              ...categories.map(c => ({ value: c.key, label: c.label }))
+            ]} 
+            value={formData.category}
+            onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))}
+          />
+
+          {/* Dynamic Attribute Fields */}
+          {formData.category && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Atribut Kategori ({categories.find(c => c.key === formData.category)?.label || formData.category})
+              </p>
+              {modalAttributes.length > 0 ? (
+                modalAttributes.map((attr) => {
+                  const currentVal = formData.attributes[attr.key] !== undefined ? formData.attributes[attr.key] : '';
+                  return (
+                    <div key={attr._id} className="space-y-1">
+                      <label className="block text-xs font-medium text-slate-700">
+                        {attr.label} {attr.required && <span className="text-red-500">*</span>}
+                      </label>
+                      {attr.type === 'select' ? (
+                        <Select
+                          value={String(currentVal)}
+                          onChange={(e) => handleAttributeChange(attr.key, e.target.value)}
+                          options={[
+                            { value: '', label: `-- Pilih ${attr.label} --` },
+                            ...(attr.options || []).map((o: string) => ({ value: o, label: o }))
+                          ]}
+                        />
+                      ) : attr.type === 'number' ? (
+                        <Input
+                          type="number"
+                          value={currentVal}
+                          onChange={(e) => handleAttributeChange(attr.key, Number(e.target.value))}
+                          placeholder={`Masukkan ${attr.label.toLowerCase()}`}
+                        />
+                      ) : (
+                        <Input
+                          type="text"
+                          value={String(currentVal)}
+                          onChange={(e) => handleAttributeChange(attr.key, e.target.value)}
+                          placeholder={`Masukkan ${attr.label.toLowerCase()}`}
+                        />
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-xs text-slate-400 italic">Belum ada atribut khusus untuk kategori ini.</p>
+              )}
+            </div>
+          )}
+
           <Select 
             label="Status Akun" 
             options={[

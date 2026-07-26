@@ -1,19 +1,24 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
-import crypto from 'crypto';
+import { createSupabaseAdminClient } from '@/lib/supabase/server';
+import { resetPasswordSchema, validateBody } from '@/lib/validations';
 
 export async function POST(request: Request) {
   try {
     await dbConnect();
-    const { token, password } = await request.json();
+    const body = await request.json();
 
-    if (!token || !password) {
+    // Zod validation
+    const validation = validateBody(resetPasswordSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, message: 'Token dan kata sandi baru wajib diisi.' },
+        { success: false, message: validation.message },
         { status: 400 }
       );
     }
+
+    const { token, password } = validation.data;
 
     const user = await User.findOne({
       resetPasswordToken: token,
@@ -28,9 +33,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Set new password hash
-    const hash = crypto.createHash('sha256').update(password).digest('hex');
-    user.passwordHash = hash;
+    // Update password in Supabase Auth
+    const supabaseAdmin = createSupabaseAdminClient();
+    const { data: sbUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const sbUser = sbUsers?.users?.find((u: any) => u.email === user.email);
+    if (sbUser) {
+      await supabaseAdmin.auth.admin.updateUserById(sbUser.id, { password });
+    }
+
+    // Clear reset token
+    user.passwordHash = 'supabase_auth_managed';
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();

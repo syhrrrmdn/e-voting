@@ -5,8 +5,10 @@ import Election from '@/models/Election';
 import Candidate from '@/models/Candidate';
 import VoteRecord from '@/models/VoteRecord';
 import AuditLog from '@/models/AuditLog';
+import { canAccessElection } from '@/lib/accessControl';
+import { updateElectionSchema, validateBody } from '@/lib/validations';
 
-// GET - Get single election by ID (with populated candidates)
+// GET - Get single election by ID (with candidates from Candidate table)
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -17,13 +19,26 @@ export async function GET(
   try {
     await dbConnect();
     const { id } = await params;
-    const election = await Election.findOne({ _id: id, deletedAt: null }).populate({ path: 'candidates', match: { deletedAt: null } });
+    const election = await Election.findOne({ _id: id, deletedAt: null });
 
     if (!election) {
       return NextResponse.json({ success: false, message: 'Pemilihan tidak ditemukan.' }, { status: 404 });
     }
 
-    const doc = election.toObject();
+    // Category-based access check for election_admin
+    if (!canAccessElection(user, election)) {
+      return NextResponse.json(
+        { success: false, message: 'Anda tidak memiliki akses ke pemilihan ini.' },
+        { status: 403 }
+      );
+    }
+
+    const doc = election.toObject ? election.toObject() : election;
+
+    // Fetch candidates via Candidate.electionId (single source of truth)
+    const candidates = await Candidate.find({ electionId: doc._id || doc.id, deletedAt: null });
+    doc.candidates = candidates.map((c: any) => c.toObject ? c.toObject() : c);
+
     if (doc.status !== 'closed') {
       doc.totalVotes = 0;
       if (Array.isArray(doc.candidates)) {
@@ -50,47 +65,60 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    // Zod validation
+    const validation = validateBody(updateElectionSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, message: validation.message },
+        { status: 400 }
+      );
+    }
+
     // Prevent editing closed elections
     const existing = await Election.findOne({ _id: id, deletedAt: null });
     if (!existing) {
       return NextResponse.json({ success: false, message: 'Pemilihan tidak ditemukan.' }, { status: 404 });
     }
-    if (existing.status === 'closed' && body.status !== 'closed') {
+
+    // Category-based access check for election_admin
+    if (!canAccessElection(user, existing)) {
+      return NextResponse.json(
+        { success: false, message: 'Anda tidak memiliki akses untuk mengubah pemilihan ini.' },
+        { status: 403 }
+      );
+    }
+
+    if (existing.status === 'closed' && validation.data.status !== 'closed') {
       return NextResponse.json(
         { success: false, message: 'Pemilihan yang sudah ditutup tidak dapat diedit.' },
         { status: 400 }
       );
     }
 
-    const election = await Election.findByIdAndUpdate(id, body, {
+    const updatePayload: any = { ...validation.data };
+    // Never allow updating creator metadata via PUT
+    delete updatePayload.createdById;
+    delete updatePayload.creatorCategory;
+    delete updatePayload.creatorAttributes;
+
+    const election = await Election.findByIdAndUpdate(id, updatePayload, {
       new: true,
       runValidators: true,
-    }).populate({ path: 'candidates', match: { deletedAt: null } });
+    });
 
     // Audit log
     let auditAction = 'UBAH_PEMILIHAN';
     let auditDesc = `Mengubah data pemilihan: "${existing.title}"`;
     let details: any = undefined;
 
-    if (body.status && body.status !== existing.status) {
+    if (validation.data.status && validation.data.status !== existing.status) {
       auditAction = 'UBAH_STATUS_PEMILIHAN';
-      auditDesc = `Mengubah status pemilihan "${existing.title}" dari ${existing.status.toUpperCase()} menjadi ${body.status.toUpperCase()}`;
-      details = { before: existing.status, after: body.status };
-    } else if (body.rules) {
+      auditDesc = `Mengubah status pemilihan "${existing.title}" dari ${existing.status.toUpperCase()} menjadi ${validation.data.status.toUpperCase()}`;
+      details = { before: existing.status, after: validation.data.status };
+    } else if (validation.data.rules) {
       auditAction = 'UBAH_ATURAN_PEMILIH';
       auditDesc = `Memperbarui aturan pemilih untuk pemilihan: "${existing.title}"`;
-      details = { before: existing.rules, after: body.rules };
-    } else {
-      const diff: any = {};
-      const fields = ['title', 'description', 'startTime', 'endTime'];
-      fields.forEach(f => {
-        if (body[f] !== undefined && String(body[f]) !== String((existing as any)[f])) {
-          diff[f] = { before: (existing as any)[f], after: body[f] };
-        }
-      });
-      if (Object.keys(diff).length > 0) {
-        details = diff;
-      }
+      details = { before: existing.rules, after: validation.data.rules };
     }
 
     await AuditLog.create({
@@ -124,6 +152,15 @@ export async function DELETE(
     if (!election) {
       return NextResponse.json({ success: false, message: 'Pemilihan tidak ditemukan.' }, { status: 404 });
     }
+
+    // Category-based access check for election_admin
+    if (!canAccessElection(user, election)) {
+      return NextResponse.json(
+        { success: false, message: 'Anda tidak memiliki akses untuk menghapus pemilihan ini.' },
+        { status: 403 }
+      );
+    }
+
     if (election.status !== 'draft') {
       return NextResponse.json(
         { success: false, message: 'Hanya pemilihan berstatus draft yang dapat dihapus.' },

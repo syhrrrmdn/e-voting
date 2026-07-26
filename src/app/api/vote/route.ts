@@ -1,59 +1,43 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import { getAuthUser } from '@/lib/auth';
-import VoteRecord from '@/models/VoteRecord';
-import Candidate from '@/models/Candidate';
+import { supabase } from '@/lib/supabase';
+import { checkEligibility } from '@/lib/ruleEngine';
 import Election from '@/models/Election';
 import User from '@/models/User';
-import { checkEligibility } from '@/lib/ruleEngine';
+import { voteSchema, validateBody } from '@/lib/validations';
 
-// POST - Cast a vote
+// POST - Cast a vote (atomic via RPC)
 export async function POST(request: Request) {
+  // 1. Authenticate — userId comes from server session, NEVER from client
   const { error, user } = await getAuthUser(['voter']);
   if (error) return error;
 
   try {
     await dbConnect();
-    const { electionId, candidateId } = await request.json();
+    const body = await request.json();
 
-    if (!electionId || !candidateId) {
+    // 2. Validate input with Zod
+    const validation = validateBody(voteSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, message: 'ID pemilihan dan ID kandidat harus diisi.' },
+        { success: false, message: validation.message },
         { status: 400 }
       );
     }
 
-    // 1. Validate election exists and is active
+    const { electionId, candidateId } = validation.data;
+    const userId = user!._id.toString(); // From server session, NOT from client
+
+    // 3. Check voter eligibility via rule engine (application-level)
     const election = await Election.findOne({ _id: electionId, deletedAt: null });
     if (!election) {
-      return NextResponse.json({ success: false, message: 'Pemilihan tidak ditemukan.' }, { status: 404 });
-    }
-    if (election.status !== 'active') {
       return NextResponse.json(
-        { success: false, message: 'Pemilihan ini tidak sedang berlangsung.' },
-        { status: 400 }
+        { success: false, message: 'Pemilihan tidak ditemukan.' },
+        { status: 404 }
       );
     }
 
-    // 2. Validate time window
-    const now = new Date();
-    if (now < new Date(election.startTime) || now > new Date(election.endTime)) {
-      return NextResponse.json(
-        { success: false, message: 'Pemilihan belum dimulai atau sudah berakhir.' },
-        { status: 400 }
-      );
-    }
-
-    // 3. Validate candidate belongs to this election
-    const candidate = await Candidate.findOne({ _id: candidateId, deletedAt: null });
-    if (!candidate || candidate.electionId.toString() !== electionId) {
-      return NextResponse.json(
-        { success: false, message: 'Kandidat tidak valid untuk pemilihan ini.' },
-        { status: 400 }
-      );
-    }
-
-    // 4. Check voter eligibility via rule engine
     if (election.rules) {
       const eligible = checkEligibility(
         { category: user!.category, ...(user!.attributes || {}) },
@@ -67,42 +51,41 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. Check for double vote (enforced by compound unique index too)
-    const existingVote = await VoteRecord.findOne({
-      userId: user!._id.toString(),
-      electionId,
+    // 4. Call atomic vote RPC function (handles insert + increment in one transaction)
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('cast_vote', {
+      p_user_id: userId,
+      p_election_id: electionId,
+      p_candidate_id: candidateId,
     });
-    if (existingVote) {
+
+    if (rpcError) {
+      // Handle PostgreSQL unique violation (duplicate vote)
+      if (rpcError.code === '23505') {
+        return NextResponse.json(
+          { success: false, message: 'Anda sudah memberikan suara pada pemilihan ini.' },
+          { status: 409 }
+        );
+      }
       return NextResponse.json(
-        { success: false, message: 'Anda sudah memberikan suara pada pemilihan ini.' },
-        { status: 409 }
+        { success: false, message: rpcError.message || 'Terjadi kesalahan saat memproses suara.' },
+        { status: 500 }
       );
     }
 
-    // 6. Record the vote
-    await VoteRecord.create({
-      userId: user!._id.toString(),
-      electionId,
-      candidateId,
-    });
-
-    // 7. Increment candidate vote count and election total
-    await Candidate.findByIdAndUpdate(candidateId, { $inc: { voteCount: 1 } });
-    await Election.findByIdAndUpdate(electionId, { $inc: { totalVotes: 1 } });
-
+    // RPC returns JSON with success/message
+    if (rpcResult && !rpcResult.success) {
+      const statusCode = rpcResult.message?.includes('sudah memberikan') ? 409 : 400;
+      return NextResponse.json(
+        { success: false, message: rpcResult.message },
+        { status: statusCode }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Suara Anda berhasil dicatat. Terima kasih telah berpartisipasi!',
+      message: rpcResult?.message || 'Suara Anda berhasil dicatat. Terima kasih telah berpartisipasi!',
     });
   } catch (err: any) {
-    // Handle duplicate key error from compound index
-    if (err.code === 11000) {
-      return NextResponse.json(
-        { success: false, message: 'Anda sudah memberikan suara pada pemilihan ini.' },
-        { status: 409 }
-      );
-    }
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }
@@ -114,10 +97,10 @@ export async function GET() {
 
   try {
     await dbConnect();
+    const { default: VoteRecord } = await import('@/models/VoteRecord');
     const votes = await VoteRecord.find({ userId: user!._id.toString() });
     return NextResponse.json({ success: true, data: votes });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }
-

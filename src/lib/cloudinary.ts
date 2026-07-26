@@ -1,4 +1,10 @@
 import { v2 as cloudinary } from 'cloudinary';
+import dns from 'dns';
+
+// Force Node.js DNS to prefer IPv4 (fixes Cloudinary API TimeoutError on Windows/ISPs)
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 // Configure Cloudinary using environment variables
 cloudinary.config({
@@ -19,6 +25,7 @@ export async function uploadToCloudinary(fileStr: string, folder: string = 'e-vo
     const response = await cloudinary.uploader.upload(fileStr, {
       folder: folder,
       resource_type: 'auto',
+      timeout: 60000,
     });
     return {
       success: true,

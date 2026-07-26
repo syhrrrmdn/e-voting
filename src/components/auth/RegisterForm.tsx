@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import FloatingElementsBackground from '@/components/ui/FloatingElementsBackground';
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -140,114 +141,116 @@ export default function RegisterForm() {
   };
 
   const appName = settings?.appName || 'MudaVote';
-  const tagline = settings?.tagline || 'E-Voting Platform';
+  const tagline = settings?.tagline || 'Platform E-Voting Organisasi Modern & Terenkripsi';
   const initials = appName.substring(0, 2).toUpperCase();
 
+  const inputClass = "block w-full px-4 py-3 bg-white/80 border border-gray-200/90 rounded-2xl text-sm text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 shadow-xs transition-all";
+  const selectClass = "block w-full px-4 py-3 bg-white/80 border border-gray-200/90 rounded-2xl text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 shadow-xs transition-all";
+  const labelClass = "block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5";
+
   return (
-    <div className="max-w-md w-full space-y-6 z-10 my-8">
+    <div className="relative max-w-md w-full space-y-6 z-10 my-8">
+      {/* Floating Background Spheres */}
+      <FloatingElementsBackground />
+
       {/* Logo and Header */}
-      <div className="text-center animate-fade-in">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 text-white font-black text-2xl shadow-xl shadow-indigo-500/20 mb-4 tracking-tighter">
+      <div className="relative z-10 text-center animate-fade-in">
+        <div
+          onClick={() => router.push('/')}
+          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 text-white font-black text-2xl shadow-lg shadow-indigo-600/25 mb-4 tracking-tight cursor-pointer hover:scale-105 transition-transform"
+        >
           {initials}
         </div>
-        <h2 className="text-3xl font-extrabold text-white tracking-tight">
-          Daftar Akun <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">{appName}</span>
+        <h2 className="text-3xl font-black text-gray-900 tracking-tight">
+          Daftar Akun <span className="bg-gradient-to-r from-indigo-600 to-teal-600 bg-clip-text text-transparent">{appName}</span>
         </h2>
-        <p className="mt-2 text-sm text-slate-400">
-          Buat akun pemilih Anda untuk berpartisipasi dalam e-voting ({tagline})
+        <p className="mt-2 text-xs sm:text-sm text-gray-500 font-medium max-w-xs mx-auto leading-relaxed">
+          Buat akun pemilih untuk berpartisipasi dalam e-voting ({tagline})
         </p>
       </div>
 
-      {/* Register Card */}
-      <div className="bg-slate-800/80 border border-slate-700/50 backdrop-blur-xl rounded-3xl p-8 shadow-2xl animate-scale-in">
+      {/* Transparent Glassmorphic Register Card */}
+      <div className="relative z-10 bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl p-7 sm:p-8 shadow-xl shadow-indigo-950/5 animate-scale-in">
         
         {/* Messages */}
         {errorMsg && (
-          <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-start gap-3">
-            <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="mb-6 p-4 rounded-2xl bg-rose-50/90 border border-rose-200 text-rose-700 text-xs sm:text-sm flex items-start gap-3 shadow-xs animate-slide-in">
+            <svg className="w-5 h-5 shrink-0 text-rose-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <span>{errorMsg}</span>
+            <span className="leading-relaxed font-medium">{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-start gap-3">
-            <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="mb-6 p-4 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-emerald-700 text-xs sm:text-sm flex items-start gap-3 shadow-xs animate-slide-in">
+            <svg className="w-5 h-5 shrink-0 text-emerald-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{successMsg}</span>
+            <span className="leading-relaxed font-medium">{successMsg}</span>
           </div>
         )}
 
         {loadingConfig ? (
-          <div className="py-12 flex flex-col items-center justify-center text-slate-400">
-            <div className="w-8 h-8 rounded-full border-2 border-t-indigo-500 border-slate-700 animate-spin mb-3" />
+          <div className="py-12 flex flex-col items-center justify-center text-gray-400">
+            <div className="w-8 h-8 rounded-full border-2 border-t-indigo-600 border-gray-200 animate-spin mb-3" />
             <p className="text-sm font-medium">Memuat konfigurasi formulir...</p>
           </div>
         ) : (
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4 sm:space-y-5">
             
             {/* Nama Lengkap */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Nama Lengkap
-              </label>
+              <label className={labelClass}>Nama Lengkap</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Masukkan nama lengkap Anda"
-                className="block w-full px-4 py-2.5 bg-slate-900/60 border border-slate-700/60 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all text-sm"
+                className={inputClass}
               />
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Alamat Email
-              </label>
+              <label className={labelClass}>Alamat Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="masukkan@email-anda.com"
-                className="block w-full px-4 py-2.5 bg-slate-900/60 border border-slate-700/60 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all text-sm"
+                className={inputClass}
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Kata Sandi
-              </label>
+              <label className={labelClass}>Kata Sandi</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Min. 6 karakter"
-                className="block w-full px-4 py-2.5 bg-slate-900/60 border border-slate-700/60 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all text-sm"
+                className={inputClass}
               />
             </div>
 
             {/* Category Selector */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Kategori Pengguna
-              </label>
+              <label className={labelClass}>Kategori Pengguna</label>
               <select
                 value={category}
                 onChange={e => {
                   setCategory(e.target.value);
                   setUserAttributes({}); // Clear previous attributes on switch
                 }}
-                className="block w-full px-4 py-2.5 bg-slate-900/60 border border-slate-700/60 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all text-sm"
+                className={selectClass}
               >
                 {categories.map(cat => (
-                  <option key={cat.key} value={cat.key} className="bg-slate-800 text-white">
+                  <option key={cat.key} value={cat.key}>
                     {cat.label}
                   </option>
                 ))}
@@ -256,26 +259,26 @@ export default function RegisterForm() {
 
             {/* Dynamic Attributes Form Section */}
             {filteredAttributes.length > 0 && (
-              <div className="border-t border-slate-700/60 pt-4 mt-2 space-y-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="border-t border-gray-200/70 pt-4 mt-2 space-y-3">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                   Detail Kriteria Kategori
                 </p>
                 {filteredAttributes.map(attr => {
                   const val = userAttributes[attr.key] !== undefined ? userAttributes[attr.key] : '';
                   return (
                     <div key={attr._id} className="space-y-1">
-                      <label className="block text-xs font-medium text-slate-300">
-                        {attr.label} {attr.required && <span className="text-red-500">*</span>}
+                      <label className="block text-xs font-bold text-gray-600">
+                        {attr.label} {attr.required && <span className="text-rose-500">*</span>}
                       </label>
                       {attr.type === 'select' ? (
                         <select
                           value={String(val)}
                           onChange={e => handleAttributeChange(attr.key, e.target.value)}
-                          className="block w-full px-4 py-2 bg-slate-900/40 border border-slate-700/40 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                          className={selectClass}
                         >
-                          <option value="" className="bg-slate-850">-- Pilih {attr.label} --</option>
+                          <option value="">-- Pilih {attr.label} --</option>
                           {(attr.options || []).map((opt: string) => (
-                            <option key={opt} value={opt} className="bg-slate-800">{opt}</option>
+                            <option key={opt} value={opt}>{opt}</option>
                           ))}
                         </select>
                       ) : attr.type === 'number' ? (
@@ -284,7 +287,7 @@ export default function RegisterForm() {
                           value={val}
                           onChange={e => handleAttributeChange(attr.key, Number(e.target.value))}
                           placeholder={`Masukkan ${attr.label.toLowerCase()}`}
-                          className="block w-full px-4 py-2 bg-slate-900/40 border border-slate-700/40 rounded-xl text-white text-xs placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                          className={inputClass}
                         />
                       ) : (
                         <input
@@ -292,7 +295,7 @@ export default function RegisterForm() {
                           value={String(val)}
                           onChange={e => handleAttributeChange(attr.key, e.target.value)}
                           placeholder={`Masukkan ${attr.label.toLowerCase()}`}
-                          className="block w-full px-4 py-2 bg-slate-900/40 border border-slate-700/40 rounded-xl text-white text-xs placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all"
+                          className={inputClass}
                         />
                       )}
                     </div>
@@ -305,7 +308,7 @@ export default function RegisterForm() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 px-4 mt-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium text-sm transition-all duration-150 flex items-center justify-center shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3.5 px-5 mt-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-md shadow-indigo-200/60 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <div className="flex items-center gap-2">
@@ -316,25 +319,30 @@ export default function RegisterForm() {
                   <span>Mendaftarkan...</span>
                 </div>
               ) : (
-                'Daftar Sekarang'
+                <>
+                  <span>Daftar Sekarang</span>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </>
               )}
             </button>
           </form>
         )}
 
         {/* Back to Login */}
-        <div className="mt-6 text-center border-t border-slate-700/40 pt-4">
-          <p className="text-xs text-slate-400">
+        <div className="mt-7 text-center border-t border-gray-200/70 pt-4">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">
             Sudah memiliki akun?{' '}
-            <a href="/login" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
+            <a href="/login" className="text-indigo-600 hover:text-indigo-700 font-bold transition-colors">
               Masuk di sini
             </a>
           </p>
         </div>
       </div>
 
-      {/* Footer info */}
-      <p className="text-center text-xs text-slate-500 mt-6">
+      {/* Footer Info */}
+      <p className="relative z-10 text-center text-xs text-gray-400 mt-6 font-medium">
         {appName} &copy; {new Date().getFullYear()}. All rights reserved.
       </p>
     </div>

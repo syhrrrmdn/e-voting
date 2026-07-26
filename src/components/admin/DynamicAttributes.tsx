@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Table, Badge, Button, Modal, Input, Select, Toggle, SearchInput, type TableColumn } from '@/components/ui';
+import Swal from '@/lib/swal';
 
 // ── Color Map for Category Badges ──
 const catColors: Record<string, 'indigo' | 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'cyan'> = {
@@ -93,7 +94,7 @@ export default function DynamicAttributes() {
   };
 
   const handleSaveAttr = async () => {
-    if (!key || !label) { alert('Key dan Label harus diisi!'); return; }
+    if (!key || !label) { Swal.warning('Form Belum Lengkap', 'Key dan Label atribut wajib diisi!'); return; }
     const cleanedOptions = attrType === 'select' ? options.filter(o => o.trim() !== '') : [];
     setSavingAttr(true);
     try {
@@ -105,7 +106,7 @@ export default function DynamicAttributes() {
         });
         const json = await res.json();
         if (json.success) { showNotification(`Atribut "${label}" berhasil diperbarui.`); fetchData(); }
-        else alert(json.message || 'Gagal memperbarui atribut');
+        else Swal.error('Gagal', json.message || 'Gagal memperbarui atribut');
       } else {
         const res = await fetch('/api/attributes', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -113,21 +114,22 @@ export default function DynamicAttributes() {
         });
         const json = await res.json();
         if (json.success) { showNotification(`Atribut "${label}" berhasil ditambahkan.`); fetchData(); }
-        else alert(json.message || 'Gagal menambahkan atribut');
+        else Swal.error('Gagal', json.message || 'Gagal menambahkan atribut');
       }
       setAttrModalOpen(false);
-    } catch { alert('Gagal menghubungkan ke server'); }
+    } catch { Swal.error('Error', 'Gagal menghubungkan ke server'); }
     finally { setSavingAttr(false); }
   };
 
   const handleDeleteAttr = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus atribut ini?')) return;
+    const confirmResult = await Swal.confirm('Hapus Atribut?', 'Apakah Anda yakin ingin menghapus atribut ini?', 'Ya, Hapus');
+    if (!confirmResult.isConfirmed) return;
     try {
       const res = await fetch(`/api/attributes/${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) { showNotification('Atribut berhasil dihapus.'); fetchData(); }
-      else alert(json.message || 'Gagal menghapus atribut');
-    } catch { alert('Gagal menghubungkan ke server'); }
+      else Swal.error('Gagal', json.message || 'Gagal menghapus atribut');
+    } catch { Swal.error('Error', 'Gagal menghubungkan ke server'); }
   };
 
   // ══════════════════════════════════
@@ -144,7 +146,7 @@ export default function DynamicAttributes() {
   };
 
   const handleSaveCat = async () => {
-    if (!catKey || !catLabel) { alert('Key dan Label kategori harus diisi!'); return; }
+    if (!catKey || !catLabel) { Swal.warning('Form Belum Lengkap', 'Key dan Label kategori wajib diisi!'); return; }
     setSavingCat(true);
     try {
       if (editingCat) {
@@ -154,7 +156,7 @@ export default function DynamicAttributes() {
         });
         const json = await res.json();
         if (json.success) { showNotification(`Kategori "${catLabel}" berhasil diperbarui.`); fetchData(); }
-        else alert(json.message || 'Gagal memperbarui kategori');
+        else Swal.error('Gagal', json.message || 'Gagal memperbarui kategori');
       } else {
         const res = await fetch('/api/categories', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -162,21 +164,26 @@ export default function DynamicAttributes() {
         });
         const json = await res.json();
         if (json.success) { showNotification(`Kategori "${catLabel}" berhasil ditambahkan.`); fetchData(); }
-        else alert(json.message || 'Gagal menambahkan kategori');
+        else Swal.error('Gagal', json.message || 'Gagal menambahkan kategori');
       }
       setCatModalOpen(false);
-    } catch { alert('Gagal menghubungkan ke server'); }
+    } catch { Swal.error('Error', 'Gagal menghubungkan ke server'); }
     finally { setSavingCat(false); }
   };
 
   const handleDeleteCat = async (id: string, catLabel: string) => {
-    if (!confirm(`Hapus kategori "${catLabel}"? Atribut yang hanya terhubung ke kategori ini akan menjadi berlaku untuk semua.`)) return;
+    const confirmResult = await Swal.confirm(
+      `Hapus Kategori "${catLabel}"?`,
+      'Atribut yang hanya terhubung ke kategori ini akan menjadi berlaku untuk semua.',
+      'Ya, Hapus'
+    );
+    if (!confirmResult.isConfirmed) return;
     try {
       const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) { showNotification('Kategori berhasil dihapus.'); fetchData(); }
-      else alert(json.message || 'Gagal menghapus kategori');
-    } catch { alert('Gagal menghubungkan ke server'); }
+      else Swal.error('Gagal', json.message || 'Gagal menghapus kategori');
+    } catch { Swal.error('Error', 'Gagal menghubungkan ke server'); }
   };
 
   // ── Toggle category in applicableTo ──

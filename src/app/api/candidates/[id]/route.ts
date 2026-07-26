@@ -5,6 +5,8 @@ import Candidate from '@/models/Candidate';
 import Election from '@/models/Election';
 import AuditLog from '@/models/AuditLog';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
+import { canAccessElection } from '@/lib/accessControl';
+import { updateCandidateSchema, validateBody } from '@/lib/validations';
 
 // PUT - Update candidate
 export async function PUT(
@@ -19,13 +21,33 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    // Zod validation
+    const validation = validateBody(updateCandidateSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, message: validation.message },
+        { status: 400 }
+      );
+    }
+
     const existingCandidate = await Candidate.findOne({ _id: id, deletedAt: null });
     if (!existingCandidate) {
       return NextResponse.json({ success: false, message: 'Kandidat tidak ditemukan.' }, { status: 404 });
     }
 
+    // Access check: election_admin must match election's category + attributes
+    const election = await Election.findOne({ _id: existingCandidate.electionId, deletedAt: null });
+    if (election) {
+      if (!canAccessElection(user, election)) {
+        return NextResponse.json(
+          { success: false, message: 'Anda tidak memiliki akses untuk mengubah kandidat pada pemilihan ini.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Auto delete old Cloudinary image if a new image URL is provided and differs
-    if (body.image && existingCandidate.image && body.image !== existingCandidate.image) {
+    if (validation.data.image && existingCandidate.image && validation.data.image !== existingCandidate.image) {
       try {
         await deleteFromCloudinary(existingCandidate.image);
       } catch (cloudErr) {
@@ -33,7 +55,7 @@ export async function PUT(
       }
     }
 
-    const candidate = await Candidate.findByIdAndUpdate(id, body, {
+    const candidate = await Candidate.findByIdAndUpdate(id, validation.data, {
       new: true,
       runValidators: true,
     });
@@ -69,6 +91,17 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: 'Kandidat tidak ditemukan.' }, { status: 404 });
     }
 
+    // Access check: election_admin must match election's category + attributes
+    const election = await Election.findOne({ _id: candidate.electionId, deletedAt: null });
+    if (election) {
+      if (!canAccessElection(user, election)) {
+        return NextResponse.json(
+          { success: false, message: 'Anda tidak memiliki akses untuk menghapus kandidat pada pemilihan ini.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Delete image from Cloudinary
     if (candidate.image) {
       try {
@@ -78,10 +111,7 @@ export async function DELETE(
       }
     }
 
-    // Remove candidate ref from election
-    await Election.findByIdAndUpdate(candidate.electionId, {
-      $pull: { candidates: candidate._id },
-    });
+    // NOTE: No longer removing from Election.candidates array (single source of truth is Candidate.electionId)
 
     // Soft delete: set deletedAt timestamp
     await Candidate.findByIdAndUpdate(id, { deletedAt: new Date() });

@@ -4,6 +4,8 @@ import { getAuthUser } from '@/lib/auth';
 import Election from '@/models/Election';
 import Candidate from '@/models/Candidate';
 import AuditLog from '@/models/AuditLog';
+import { canAccessElection } from '@/lib/accessControl';
+import { electionSchema, validateBody } from '@/lib/validations';
 
 // GET - Retrieve all elections with optional filters
 export async function GET(request: Request) {
@@ -25,13 +27,28 @@ export async function GET(request: Request) {
       ];
     }
 
-    const elections = await Election.find(filter)
-      .populate({ path: 'candidates', match: { deletedAt: null } })
-      .sort({ createdAt: -1 });
+    const elections = await Election.find(filter).sort({ createdAt: -1 });
+
+    // Fetch candidates for each election via Candidate.electionId (single source of truth)
+    const electionDocs = await Promise.all(
+      elections.map(async (e: any) => {
+        const doc = e.toObject ? e.toObject() : e;
+        const candidates = await Candidate.find({ electionId: doc._id || doc.id, deletedAt: null });
+        doc.candidates = candidates.map((c: any) => c.toObject ? c.toObject() : c);
+        return doc;
+      })
+    );
+
+    // Filter elections for election_admin based on category AND attributes
+    let accessibleElections = electionDocs;
+    if (user!.role === 'election_admin') {
+      accessibleElections = electionDocs.filter((elDoc: any) => {
+        return canAccessElection(user, elDoc);
+      });
+    }
 
     // Mask vote counts for everyone if election is not closed
-    const formatted = elections.map((e: any) => {
-      const doc = e.toObject();
+    const formatted = accessibleElections.map((doc: any) => {
       if (doc.status !== 'closed') {
         doc.totalVotes = 0;
         if (Array.isArray(doc.candidates)) {
@@ -55,24 +72,33 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
     const body = await request.json();
-    const { title, description, startTime, endTime, rules } = body;
 
-    if (!title || !startTime || !endTime) {
+    // Zod validation
+    const validation = validateBody(electionSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, message: 'Judul, waktu mulai, dan waktu selesai harus diisi.' },
+        { success: false, message: validation.message },
         { status: 400 }
       );
     }
+
+    const { title, description, startTime, endTime, rules } = validation.data;
+
+    // Clean rules — only voter eligibility, no creator metadata
+    const rulesObj = rules || { logic: 'AND', conditions: [], groups: [] };
 
     const election = await Election.create({
       title,
       description: description || '',
       createdBy: user!.name,
+      createdById: user!._id.toString(),
+      creatorCategory: user!.category || '',
+      creatorAttributes: user!.attributes || {},
       startTime: new Date(startTime),
       endTime: new Date(endTime),
       status: 'draft',
-      candidates: [],
-      rules: rules || { logic: 'AND', conditions: [], groups: [] },
+      candidates: [], // Legacy column — not used, kept for compatibility
+      rules: rulesObj,
       totalVotes: 0,
     });
 
@@ -84,7 +110,8 @@ export async function POST(request: Request) {
       resource: 'PEMILIHAN',
     });
 
-    return NextResponse.json({ success: true, data: election }, { status: 201 });
+    const doc = election.toObject();
+    return NextResponse.json({ success: true, data: doc }, { status: 201 });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }

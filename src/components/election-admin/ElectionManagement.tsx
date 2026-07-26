@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { PageHeader, Card, Badge, Button, Modal, Input, Textarea, Toggle } from '@/components/ui';
 import ElectionReportModal from '@/components/ui/ElectionReportModal';
 
+import Swal from '@/lib/swal';
+
 const statusColor = (s: string) => s==='active'?'green':s==='published'?'indigo':s==='draft'?'yellow':'gray';
 
 export default function ElectionManagement({ onNavigate, onSelectElection }: { onNavigate?: (p: string) => void; onSelectElection?: (id: string) => void }) {
@@ -91,6 +93,7 @@ export default function ElectionManagement({ onNavigate, onSelectElection }: { o
       if (json.success) {
         setModalOpen(false);
         fetchElections();
+        Swal.success('Berhasil!', 'Pemilihan baru berhasil dibuat.');
       } else {
         setError(json.message || 'Gagal menyimpan data pemilihan');
       }
@@ -111,16 +114,18 @@ export default function ElectionManagement({ onNavigate, onSelectElection }: { o
       const json = await res.json();
       if (json.success) {
         fetchElections();
+        Swal.success('Status Diperbarui', `Status pemilihan diubah menjadi ${targetStatus.toUpperCase()}.`);
       } else {
-        alert(json.message || 'Gagal memperbarui status');
+        Swal.error('Gagal', json.message || 'Gagal memperbarui status');
       }
     } catch (err) {
-      alert('Gagal menghubungkan ke server');
+      Swal.error('Error', 'Gagal menghubungkan ke server');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus draf pemilihan ini?')) return;
+    const confirmResult = await Swal.confirm('Hapus Pemilihan?', 'Apakah Anda yakin ingin menghapus draf pemilihan ini?', 'Ya, Hapus');
+    if (!confirmResult.isConfirmed) return;
     
     try {
       const res = await fetch(`/api/elections/${id}`, {
@@ -129,11 +134,12 @@ export default function ElectionManagement({ onNavigate, onSelectElection }: { o
       const json = await res.json();
       if (json.success) {
         fetchElections();
+        Swal.success('Terhapus!', 'Draf pemilihan berhasil dihapus.');
       } else {
-        alert(json.message || 'Gagal menghapus pemilihan');
+        Swal.error('Gagal', json.message || 'Gagal menghapus pemilihan');
       }
     } catch (err) {
-      alert('Gagal menghubungkan ke server');
+      Swal.error('Error', 'Gagal menghubungkan ke server');
     }
   };
 

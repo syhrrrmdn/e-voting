@@ -1,72 +1,58 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/dbConnect';
-import User from '@/models/User';
+import { getAuthUser } from '@/lib/auth';
+import { validateBody, profileUpdateSchema } from '@/lib/validations';
 
-// GET - Get current authenticated user's profile from DB
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const { error, user } = await getAuthUser();
+  if (error) return error;
 
-  if (!session?.user?.email) {
-    return NextResponse.json(
-      { success: false, message: 'Tidak terautentikasi.' },
-      { status: 401 }
-    );
-  }
-
-  try {
-    await dbConnect();
-    const user = await User.findOne({ email: session.user.email, deletedAt: null }).select('-passwordHash');
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: 'Pengguna tidak ditemukan.' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ success: true, data: user });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
-  }
+  return NextResponse.json({
+    success: true,
+    data: {
+      id: user._id || user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      category: user.category,
+      attributes: user.attributes || {},
+      avatar: user.avatar || '',
+      status: user.status,
+    },
+  });
 }
 
-// PUT - Update own profile (name, avatar)
 export async function PUT(request: Request) {
-  const session = await getServerSession(authOptions);
+  const { error, user } = await getAuthUser();
+  if (error) return error;
 
-  if (!session?.user?.email) {
-    return NextResponse.json(
-      { success: false, message: 'Tidak terautentikasi.' },
-      { status: 401 }
-    );
+  const body = await request.json();
+  const validation = validateBody(profileUpdateSchema, body);
+  if (!validation.success) {
+    return NextResponse.json({ success: false, message: validation.message }, { status: 400 });
   }
 
-  try {
-    await dbConnect();
-    const body = await request.json();
+  const updates: any = {};
+  if (validation.data.name) updates.name = validation.data.name;
+  if (validation.data.avatar !== undefined) updates.avatar = validation.data.avatar;
 
-    // Only allow updating name and avatar for own profile
-    const allowedFields: any = {};
-    if (body.name) allowedFields.name = body.name;
-    if (body.avatar !== undefined) allowedFields.avatar = body.avatar;
-
-    const user = await User.findOneAndUpdate(
-      { email: session.user.email },
-      allowedFields,
-      { new: true, runValidators: true }
-    ).select('-passwordHash');
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: 'Pengguna tidak ditemukan.' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ success: true, data: user });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ success: false, message: 'Tidak ada data untuk diperbarui.' }, { status: 400 });
   }
+
+  Object.assign(user, updates);
+  await user.save();
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      id: user._id || user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      category: user.category,
+      attributes: user.attributes || {},
+      avatar: user.avatar || '',
+      status: user.status,
+    },
+  });
 }
