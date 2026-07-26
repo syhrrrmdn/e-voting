@@ -2,10 +2,10 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * Middleware: refreshes Supabase Auth session cookies on every request.
+ * Proxy: refreshes Supabase Auth session cookies on every request.
  * Redirects unauthenticated users to /login for protected routes.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
