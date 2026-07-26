@@ -88,11 +88,15 @@ const ConditionRow = ({
         </span>
         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kriteria Pemilih</span>
         <div className="flex-1" />
-        <button onClick={() => rmCond(gid, cond.id)} title="Hapus kriteria ini"
-          className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer opacity-0 group-hover:opacity-100">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <button
+          onClick={() => rmCond(gid, cond.id)}
+          title="Hapus kriteria ini"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-600 border border-rose-200 text-xs font-bold transition-all cursor-pointer shrink-0"
+        >
+          <svg className="w-3.5 h-3.5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
+          <span>Hapus</span>
         </button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -128,6 +132,7 @@ const GroupBlock = ({
   rmCond,
   addGrp,
   rmGrp,
+  clearAll,
 }: {
   group: RuleGroup;
   parentId?: string;
@@ -142,6 +147,7 @@ const GroupBlock = ({
   rmCond: (gid: string, cid: string) => void;
   addGrp: (gid: string) => void;
   rmGrp: (pid: string, cid: string) => void;
+  clearAll?: () => void;
 }) => {
   const isRoot = !parentId;
   const empty = group.conditions.length === 0 && group.groups.length === 0;
@@ -150,31 +156,56 @@ const GroupBlock = ({
   return (
     <div className={`border rounded-2xl p-4 sm:p-5 space-y-3 ${bgClass}`}>
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 max-w-full">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">
             {isRoot ? 'Mode Pencocokan Aturan:' : 'Kelompok Pemilih:'}
           </span>
-          <div className="flex rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-            <button onClick={() => setLogic(group.id, 'AND')}
-              className={`px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${group.logic === 'AND' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+          <div className="inline-flex flex-col sm:flex-row rounded-xl overflow-hidden border border-slate-200 shadow-sm max-w-full">
+            <button
+              onClick={() => setLogic(group.id, 'AND')}
+              className={`px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer text-center ${
+                group.logic === 'AND' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
               Semua kriteria harus terpenuhi
             </button>
-            <button onClick={() => setLogic(group.id, 'OR')}
-              className={`px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${group.logic === 'OR' ? 'bg-amber-500 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
+            <button
+              onClick={() => setLogic(group.id, 'OR')}
+              className={`px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer text-center ${
+                group.logic === 'OR' ? 'bg-amber-500 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
               Cukup salah satu kriteria terpenuhi
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button variant="secondary" size="sm" onClick={() => addCond(group.id)}>+ Tambahkan Kriteria</Button>
           <Button variant="ghost" size="sm" onClick={() => addGrp(group.id)}>+ Kelompok Pemilih</Button>
-          {parentId && (
-            <button onClick={() => rmGrp(parentId, group.id)}
-              className="text-xs text-red-400 hover:text-red-600 font-semibold cursor-pointer px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">
-              Hapus
+          {parentId ? (
+            <button
+              type="button"
+              onClick={() => rmGrp(parentId, group.id)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>Hapus Kelompok Ini</span>
             </button>
-          )}
+          ) : !empty && clearAll ? (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>Kosongkan Semua Aturan</span>
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -320,6 +351,22 @@ export default function VoterRuleEngine() {
     setRuleGroup(walk(ruleGroup, pid, g => ({ ...g, groups: g.groups.filter(c => c.id !== cid) })));
   };
 
+  const handleClearAll = async () => {
+    const confirmed = await Swal.confirm(
+      'Kosongkan Aturan?',
+      'Semua kriteria dan kelompok pemilih pada pemilihan ini akan dikosongkan. Siapa saja pemilih yang aktif dapat memberikan suara.',
+      'Ya, Kosongkan'
+    );
+    if (confirmed) {
+      setRuleGroup({
+        id: 'root',
+        logic: 'AND',
+        conditions: [],
+        groups: [],
+      });
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedElectionId) {
       Swal.warning('Peringatan', 'Pilih salah satu pemilihan terlebih dahulu.');
@@ -375,9 +422,9 @@ export default function VoterRuleEngine() {
       {elections.length === 0 ? (
         <Card className="py-12 text-center text-slate-400">Belum ada pemilihan. Buat pemilihan terlebih dahulu.</Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Left: Rule Builder */}
-          <div className="lg:col-span-2 space-y-5">
+          <div className="xl:col-span-2 space-y-5">
             <Card>
               <div className="flex flex-wrap items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-100">
                 <div>
@@ -400,6 +447,7 @@ export default function VoterRuleEngine() {
                 rmCond={rmCond}
                 addGrp={addGrp}
                 rmGrp={rmGrp}
+                clearAll={handleClearAll}
               />
             </Card>
           </div>

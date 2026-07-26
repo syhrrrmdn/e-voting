@@ -222,6 +222,7 @@ export function Modal({
   children,
   size = 'md',
   footer,
+  closeOnBackdropClick = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -229,6 +230,7 @@ export function Modal({
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   footer?: React.ReactNode;
+  closeOnBackdropClick?: boolean;
 }) {
   if (!open) return null;
 
@@ -244,7 +246,7 @@ export function Modal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={closeOnBackdropClick ? onClose : undefined}
       />
       {/* Panel */}
       <div

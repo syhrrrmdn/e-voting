@@ -82,7 +82,11 @@ export default function Profile() {
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file: base64Str, folder: 'avatars' }),
+          body: JSON.stringify({ 
+            file: base64Str, 
+            folder: 'avatars',
+            oldUrl: user.avatar || ''
+          }),
         });
         const uploadJson = await uploadRes.json();
 

@@ -108,6 +108,7 @@ export const settingsSchema = z.object({
 export const uploadSchema = z.object({
   file: z.string().min(1, 'File (base64 string) harus disertakan.'),
   folder: z.string().max(100).optional().default('e-voting'),
+  oldUrl: z.string().optional(),
 });
 
 export const profileUpdateSchema = z.object({

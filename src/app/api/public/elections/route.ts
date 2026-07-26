@@ -32,7 +32,7 @@ export async function GET() {
     const formattedElections = await Promise.all(
       elections.map(async (e: any) => {
         const doc = e.toObject();
-        const candidates = await Candidate.find({ electionId: doc._id || doc.id, deletedAt: null });
+        const candidates = await Candidate.find({ electionId: doc._id || doc.id, deletedAt: null }).sort({ createdAt: 1 });
         
         let formattedCandidates = candidates.map((c: any) => {
           const cDoc = c.toObject ? c.toObject() : c;

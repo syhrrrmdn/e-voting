@@ -19,7 +19,18 @@ export async function GET(request: Request) {
     const search = searchParams.get('search');
 
     const filter: any = { deletedAt: null };
-    if (status) filter.status = status;
+    if (user!.role === 'voter') {
+      if (status) {
+        if (status === 'draft') {
+          return NextResponse.json({ success: true, data: [] });
+        }
+        filter.status = status;
+      } else {
+        filter.status = { $in: ['active', 'published', 'closed'] };
+      }
+    } else if (status) {
+      filter.status = status;
+    }
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },

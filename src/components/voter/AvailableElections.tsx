@@ -64,8 +64,9 @@ export default function AvailableElections({ onSelectElection, onNavigate }: {
     );
   }
 
-  // Filter elections to only show the ones targeting the user's attributes (based on rules engine)
+  // Filter elections to only show non-draft elections targeting the user's attributes
   const categoryFilteredElections = elections.filter(e => {
+    if (e.status === 'draft') return false;
     return checkEligibility(
       { category: userProfile?.category, ...(userProfile?.attributes || {}) },
       e.rules

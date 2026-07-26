@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
 import { getAuthUser } from '@/lib/auth';
 import { uploadSchema, validateBody } from '@/lib/validations';
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { file, folder } = validation.data;
+    const { file, folder, oldUrl } = validation.data;
 
     // Verify Cloudinary credentials are set
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
@@ -30,6 +30,11 @@ export async function POST(request: Request) {
         },
         { status: 500 }
       );
+    }
+
+    // Delete old image from Cloudinary if oldUrl exists
+    if (oldUrl && oldUrl.trim() !== '') {
+      await deleteFromCloudinary(oldUrl);
     }
 
     const result = await uploadToCloudinary(file, folder);

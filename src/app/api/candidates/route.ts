@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     const filter: any = { deletedAt: null };
     if (electionId) filter.electionId = electionId;
 
-    const candidates = await Candidate.find(filter).sort({ createdAt: -1 });
+    const candidates = await Candidate.find(filter).sort({ createdAt: 1 });
 
     // Fetch election statuses to mask candidates belonging to open elections
     const electionIds = Array.from(new Set(candidates.map((c: any) => c.electionId.toString())));

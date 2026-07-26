@@ -201,13 +201,6 @@ class CustomSweetAlert {
         e.stopPropagation();
         cleanup(false);
       });
-      container.addEventListener('click', (e) => {
-        if (e.target === container) {
-          e.preventDefault();
-          e.stopPropagation();
-          cleanup(false);
-        }
-      });
     });
   }
 

@@ -137,7 +137,11 @@ export default function CandidateManagement({ selectedElectionId }: { selectedEl
       const uploadRes = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file: base64Str, folder: 'candidates' }),
+        body: JSON.stringify({ 
+          file: base64Str, 
+          folder: 'candidates',
+          oldUrl: imageUrl || ''
+        }),
       });
       const uploadJson = await uploadRes.json();
 

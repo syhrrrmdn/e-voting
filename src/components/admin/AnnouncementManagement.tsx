@@ -86,7 +86,11 @@ export default function AnnouncementManagement() {
         const res = await fetch('/api/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file: base64, folder: 'announcements' }),
+          body: JSON.stringify({ 
+            file: base64, 
+            folder: 'announcements',
+            oldUrl: formData.imageUrl || ''
+          }),
         });
         const json = await res.json();
         if (json.success && json.url) {

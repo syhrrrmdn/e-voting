@@ -36,7 +36,7 @@ export async function GET(
     const doc = election.toObject ? election.toObject() : election;
 
     // Fetch candidates via Candidate.electionId (single source of truth)
-    const candidates = await Candidate.find({ electionId: doc._id || doc.id, deletedAt: null });
+    const candidates = await Candidate.find({ electionId: doc._id || doc.id, deletedAt: null }).sort({ createdAt: 1 });
     doc.candidates = candidates.map((c: any) => c.toObject ? c.toObject() : c);
 
     if (doc.status !== 'closed') {

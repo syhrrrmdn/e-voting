@@ -219,7 +219,7 @@ export default function DashboardLayout({ role, activePage, onNavigate, onRoleCh
       />
 
       {/* Main content */}
-      <div className="relative z-10 lg:pl-64 flex flex-col min-h-screen">
+      <div className="lg:pl-64 flex flex-col min-h-screen">
         {/* Top bar */}
         <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-200 h-14 flex items-center px-4 lg:px-6 gap-4 shadow-[0_1px_3px_0_rgb(0_0_0/0.04)]">
           <button

@@ -43,19 +43,33 @@ export async function uploadToCloudinary(fileStr: string, folder: string = 'e-vo
 
 /**
  * Extracts Cloudinary public_id from a Cloudinary secure_url.
- * e.g. "https://res.cloudinary.com/daemueqx4/image/upload/v1720000000/e-voting/xyz.jpg" -> "e-voting/xyz"
+ * e.g. "https://res.cloudinary.com/daemueqx4/image/upload/v1720000000/avatars/xyz.jpg" -> "avatars/xyz"
  */
 export function extractPublicIdFromUrl(url: string): string | null {
   if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) return null;
   try {
     const parts = url.split('/upload/');
     if (parts.length < 2) return null;
-    const pathAfterUpload = parts[1];
-    // Remove version tag if present (e.g. v1720000000/)
-    const pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
-    // Remove file extension (e.g. .png, .jpg)
-    const lastDotIndex = pathWithoutVersion.lastIndexOf('.');
-    const publicId = lastDotIndex !== -1 ? pathWithoutVersion.substring(0, lastDotIndex) : pathWithoutVersion;
+    let pathAfterUpload = parts[1];
+
+    // Remove query string if present
+    pathAfterUpload = pathAfterUpload.split('?')[0];
+
+    // Split by slash
+    const segments = pathAfterUpload.split('/');
+    
+    // Filter out transformation segments and version segments (v12345678)
+    const cleanSegments = segments.filter(segment => {
+      if (/^v\d+$/.test(segment)) return false;
+      if (segment.includes(',') || /^[a-z]_[a-z0-9]+/.test(segment)) return false;
+      return true;
+    });
+
+    if (cleanSegments.length === 0) return null;
+
+    const fullPath = cleanSegments.join('/');
+    const lastDotIndex = fullPath.lastIndexOf('.');
+    const publicId = lastDotIndex !== -1 ? fullPath.substring(0, lastDotIndex) : fullPath;
     return publicId || null;
   } catch (e) {
     return null;
@@ -76,7 +90,14 @@ export async function deleteFromCloudinary(publicIdOrUrl: string) {
 
     if (!publicId) return { success: false, message: 'Invalid Cloudinary URL or Public ID' };
 
-    const response = await cloudinary.uploader.destroy(publicId);
+    // Invalidate CDN cache and delete image from Cloudinary
+    const response = await cloudinary.uploader.destroy(publicId, {
+      invalidate: true,
+      resource_type: 'image',
+    });
+
+    console.log(`Cloudinary deletion for [${publicId}]:`, response.result);
+
     return {
       success: response.result === 'ok' || response.result === 'not_found',
       result: response.result,
