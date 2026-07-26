@@ -36,6 +36,7 @@ export default function UserManagement() {
   });
   
   // Selected user for delete / reset password action
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
   const fetchMeta = async () => {
