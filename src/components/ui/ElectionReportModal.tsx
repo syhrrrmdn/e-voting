@@ -32,7 +32,12 @@ export default function ElectionReportModal({
     (a, b) => (b.voteCount || 0) - (a.voteCount || 0)
   );
 
-  const isInvalidElection = totalVotes === 0;
+  const isZeroVotes = totalVotes === 0;
+  const maxVotes = sortedCandidates.length > 0 ? (sortedCandidates[0].voteCount || 0) : 0;
+  const topTiedCandidates = sortedCandidates.filter((c) => (c.voteCount || 0) === maxVotes);
+  const isTie = totalVotes > 0 && topTiedCandidates.length > 1;
+
+  const isInvalidElection = isZeroVotes || isTie;
 
   const winner = !isInvalidElection && sortedCandidates.length > 0 ? sortedCandidates[0] : null;
   const winnerPct =
@@ -110,12 +115,19 @@ export default function ElectionReportModal({
 
             {/* Document Status Stamp */}
             <div className="text-right shrink-0">
-              {isInvalidElection ? (
+              {isZeroVotes ? (
                 <div className="inline-flex flex-col items-end">
                   <span className="px-3.5 py-1.5 bg-red-100 text-red-700 border-2 border-red-600 text-xs font-black rounded-lg uppercase tracking-wider shadow-sm">
-                    ⚠️ PEMILIHAN TIDAK SAH (INVALID)
+                    ⚠️ PEMILIHAN TIDAK SAH (0 SUARA)
                   </span>
                   <span className="text-[10px] text-red-600 font-bold mt-1">0 Partisipasi Suara</span>
+                </div>
+              ) : isTie ? (
+                <div className="inline-flex flex-col items-end">
+                  <span className="px-3.5 py-1.5 bg-red-100 text-red-700 border-2 border-red-600 text-xs font-black rounded-lg uppercase tracking-wider shadow-sm">
+                    ⚠️ PEMILIHAN TIDAK SAH (SERI / IMBANG)
+                  </span>
+                  <span className="text-[10px] text-red-600 font-bold mt-1">{maxVotes} Suara Imbang</span>
                 </div>
               ) : (
                 <div className="inline-flex flex-col items-end">
@@ -147,8 +159,10 @@ export default function ElectionReportModal({
           <div>
             <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Status Keabsahan</span>
             <div className="mt-1">
-              {isInvalidElection ? (
-                <Badge color="red">TIDAK SAH / INVALID (0 Suara)</Badge>
+              {isZeroVotes ? (
+                <Badge color="red">TIDAK SAH (0 Suara)</Badge>
+              ) : isTie ? (
+                <Badge color="red">TIDAK SAH (Hasil Imbang)</Badge>
               ) : (
                 <Badge color="green">RESMI &amp; SAH</Badge>
               )}
@@ -183,14 +197,19 @@ export default function ElectionReportModal({
             <div>
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 bg-red-200 text-red-900 text-[10px] font-black rounded uppercase tracking-wider">
-                  PERNYATAAN PEMILIHAN INVALID
+                  PERNYATAAN PEMILIHAN TIDAK SAH
                 </span>
-                <span className="text-xs font-bold text-red-700">0 Partisipan Suara</span>
+                <span className="text-xs font-bold text-red-700">
+                  {isZeroVotes ? '0 Partisipan Suara' : `Suara Imbang (${maxVotes} Suara)`}
+                </span>
               </div>
-              <h3 className="text-base font-black text-red-900 mt-1">PEMILIHAN DITETAPKAN TIDAK SAH (INVALID)</h3>
+              <h3 className="text-base font-black text-red-900 mt-1">
+                PEMILIHAN DITETAPKAN TIDAK SAH ({isZeroVotes ? '0 SUARA' : 'HASIL IMBANG / SERI'})
+              </h3>
               <p className="text-xs text-red-800 leading-relaxed mt-1">
-                Berdasarkan rekapitulasi data pemungutan suara, pemilihan ini ditutup tanpa ada suara yang masuk (0 Suara).
-                Sesuai dengan ketentuan tata tertib pemilihan, <strong>pemilihan ini dinyatakan Batal / Tidak Sah</strong> dan <strong>tidak ada kandidat yang dapat ditetapkan sebagai pemenang</strong>.
+                {isZeroVotes
+                  ? 'Berdasarkan rekapitulasi data pemungutan suara, pemilihan ini ditutup tanpa ada suara yang masuk (0 Suara). Sesuai dengan ketentuan tata tertib pemilihan, pemilihan ini dinyatakan Batal / Tidak Sah dan tidak ada kandidat yang dapat ditetapkan sebagai pemenang.'
+                  : `Berdasarkan rekapitulasi data pemungutan suara, perolehan suara terbanyak bernilai imbang/seri (${maxVotes} suara). Sesuai dengan ketentuan tata tertib pemilihan, pemilihan ini dinyatakan Tidak Sah / Seri dan tidak ada pemenang tunggal yang dapat ditetapkan.`}
               </p>
             </div>
           </div>

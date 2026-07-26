@@ -54,10 +54,16 @@ export default function ResultDashboard() {
   // Sort candidates by voteCount descending
   const sortedCandidates = [...electionCandidates].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
 
+  const maxVotes = sortedCandidates.length > 0 ? (sortedCandidates[0].voteCount || 0) : 0;
+  const topTied = sortedCandidates.filter(c => (c.voteCount || 0) === maxVotes);
+  const isTie = totalVotes > 0 && topTied.length > 1;
+  const isZeroVotes = totalVotes === 0;
+  const isInvalid = isZeroVotes || isTie;
+
   const handleExport = (format: string) => {
     if (format === 'PDF') {
       if (selectedElection?.status === 'closed') {
-        setReportModalOpen(true);
+        window.open(`/report/${selectedElection._id}`, '_blank');
       } else {
         Swal.warning('Cetak PDF Belum Tersedia', 'Cetak PDF Berita Acara hanya tersedia untuk pemilihan yang sudah DITUTUP / SELESAI.');
       }
@@ -81,25 +87,14 @@ export default function ResultDashboard() {
         title="Dashboard Hasil" 
         subtitle="Analisis perolehan suara pemilihan realtime" 
         action={
-          selectedElection && (
-            <div className="flex gap-2">
-              {selectedElection.status === 'closed' && (
-                <Button variant="primary" size="sm" onClick={() => setReportModalOpen(true)} icon={
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
-                }>
-                  Cetak PDF Hasil
-                </Button>
-              )}
-              <Button variant="secondary" size="sm" onClick={() => handleExport('PDF')} icon={
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              }>
-                Ekspor PDF
-              </Button>
-            </div>
+          selectedElection && selectedElection.status === 'closed' && (
+            <Button variant="primary" size="sm" onClick={() => window.open(`/report/${selectedElection._id}`, '_blank')} icon={
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+            }>
+              Cetak / Ekspor PDF
+            </Button>
           )
         } 
       />
@@ -145,15 +140,15 @@ export default function ResultDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             } color="emerald" />
-            <StatsCard title="Status Pemilihan" value={selectedElection.status === 'active' ? 'AKTIF' : selectedElection.status === 'published' ? 'DITERBITKAN' : selectedElection.status === 'draft' ? 'DRAF' : 'DITUTUP'} icon={
+            <StatsCard title="Status Keabsahan" value={isZeroVotes ? 'TIDAK SAH (0 SUARA)' : isTie ? 'TIDAK SAH (SERI)' : 'SAH & FINAL'} icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-            } color={selectedElection.status === 'active' ? 'emerald' : selectedElection.status === 'closed' ? 'rose' : 'indigo'} />
+            } color={isInvalid ? 'rose' : 'emerald'} />
           </div>
 
           {/* Charts */}
-          {totalVotes > 0 ? (
+          {!isInvalid ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider text-slate-400">Distribusi Suara (Pie)</h3>
@@ -173,9 +168,13 @@ export default function ResultDashboard() {
               <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
                 ⚠️
               </div>
-              <h3 className="text-base font-bold text-red-900 mb-1">PEMILIHAN TIDAK SAH (INVALID)</h3>
+              <h3 className="text-base font-bold text-red-900 mb-1">
+                PEMILIHAN TIDAK SAH ({isZeroVotes ? '0 SUARA' : 'HASIL IMBANG / SERI'})
+              </h3>
               <p className="text-xs text-red-700 max-w-lg mx-auto leading-relaxed">
-                Tidak ada suara yang masuk selama periode pemungutan suara (0 Suara). Sesuai dengan aturan sistem e-voting, pemilihan ini dinyatakan <strong>Batal / Tidak Sah</strong> dan tidak ada kandidat yang ditetapkan sebagai pemenang.
+                {isZeroVotes
+                  ? 'Tidak ada suara yang masuk selama periode pemungutan suara (0 Suara). Sesuai dengan aturan sistem e-voting, pemilihan ini dinyatakan Batal / Tidak Sah.'
+                  : `Perolehan suara teratas bernilai imbang (${maxVotes} suara). Pemilihan ini dinyatakan Tidak Sah / Seri dan tidak ada kandidat yang dapat ditetapkan sebagai pemenang tunggal.`}
               </p>
             </Card>
           )}
@@ -196,12 +195,15 @@ export default function ResultDashboard() {
                 <tbody className="divide-y divide-slate-100">
                   {sortedCandidates.map((cand, idx) => {
                     const pct = totalVotes > 0 ? (((cand.voteCount || 0) / totalVotes) * 100).toFixed(1) : '0';
+                    const isWinnerCandidate = idx === 0 && !isInvalid;
                     return (
                       <tr key={cand._id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3.5 px-4 font-bold text-slate-600">
-                          {totalVotes === 0 ? (
-                            <Badge color="red">INVALID</Badge>
-                          ) : idx + 1 === 1 ? (
+                          {isZeroVotes ? (
+                            <Badge color="red">0 SUARA</Badge>
+                          ) : isTie && (cand.voteCount || 0) === maxVotes ? (
+                            <Badge color="red">SERI ({maxVotes})</Badge>
+                          ) : isWinnerCandidate ? (
                             <Badge color="yellow">🏆 Rank 1</Badge>
                           ) : (
                             `Rank ${idx + 1}`

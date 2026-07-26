@@ -40,8 +40,7 @@ export default function Results() {
   }, []);
 
   const handleOpenPrint = (election: any) => {
-    setSelectedPrintElection(election);
-    setPrintModalOpen(true);
+    window.open(`/report/${election._id}`, '_blank');
   };
 
   if (loading) {
@@ -72,15 +71,23 @@ export default function Results() {
           {closedElections.map(election => {
             const electionCandidates = candidates.filter(c => c.electionId === election._id);
             const totalVotes = electionCandidates.reduce((s, c) => s + (c.voteCount || 0), 0);
-            const isInvalid = totalVotes === 0;
+            
+            const sorted = [...electionCandidates].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
+            const maxVotes = sorted.length > 0 ? (sorted[0].voteCount || 0) : 0;
+            const topTied = sorted.filter(c => (c.voteCount || 0) === maxVotes);
+            const isTie = totalVotes > 0 && topTied.length > 1;
+            const isZeroVotes = totalVotes === 0;
+            const isInvalid = isZeroVotes || isTie;
             
             return (
               <Card key={election._id} className="space-y-6">
                 <div className="flex flex-wrap justify-between items-start gap-3 border-b border-slate-100 pb-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      {isInvalid ? (
-                        <Badge color="red">TIDAK SAH / INVALID</Badge>
+                      {isZeroVotes ? (
+                        <Badge color="red">TIDAK SAH (0 Suara)</Badge>
+                      ) : isTie ? (
+                        <Badge color="red">TIDAK SAH (Hasil Imbang)</Badge>
                       ) : (
                         <Badge color="gray">Selesai (Sah)</Badge>
                       )}
@@ -113,10 +120,12 @@ export default function Results() {
                 ) : (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-center">
                     <span className="text-xs font-black text-red-700 uppercase tracking-wider block mb-1">
-                      ⚠️ PEMILIHAN TIDAK SAH (INVALID)
+                      ⚠️ PEMILIHAN TIDAK SAH ({isZeroVotes ? '0 SUARA' : 'HASIL IMBANG / SERI'})
                     </span>
                     <p className="text-xs text-red-600">
-                      Tidak ada suara yang masuk selama periode pemungutan suara (0 Suara). Pemilihan ini dinyatakan Batal / Tidak Sah dan tidak ada pemenang yang ditetapkan.
+                      {isZeroVotes
+                        ? 'Tidak ada suara yang masuk selama periode pemungutan suara (0 Suara). Pemilihan ini dinyatakan Batal / Tidak Sah.'
+                        : `Perolehan suara teratas bernilai imbang (${maxVotes} suara). Pemilihan ini dinyatakan Tidak Sah / Seri dan tidak ada pemenang tunggal.`}
                     </p>
                   </div>
                 )}
