@@ -168,7 +168,11 @@ class CustomSweetAlert {
 
       const modalBox = container.querySelector('#swal-modal-box');
 
+      let isCleanedUp = false;
       const cleanup = (isConfirmed: boolean) => {
+        if (isCleanedUp) return;
+        isCleanedUp = true;
+
         container.classList.remove('swal-backdrop-in');
         container.classList.add('swal-backdrop-out');
         if (modalBox) {
@@ -187,10 +191,22 @@ class CustomSweetAlert {
       const confirmBtn = container.querySelector('#swal-confirm-btn');
       const cancelBtn = container.querySelector('#swal-cancel-btn');
 
-      confirmBtn?.addEventListener('click', () => cleanup(true));
-      cancelBtn?.addEventListener('click', () => cleanup(false));
+      confirmBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        cleanup(true);
+      });
+      cancelBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        cleanup(false);
+      });
       container.addEventListener('click', (e) => {
-        if (e.target === container) cleanup(false);
+        if (e.target === container) {
+          e.preventDefault();
+          e.stopPropagation();
+          cleanup(false);
+        }
       });
     });
   }

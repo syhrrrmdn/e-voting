@@ -121,8 +121,9 @@ export default function UserManagement() {
     setFormModalOpen(true);
   };
 
-  const handleSaveUser = async () => {
-    if (!formData.name || !formData.email) {
+  const handleSaveUser = async (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
+    if (!formData.name.trim() || !formData.email.trim()) {
       Swal.warning('Form Belum Lengkap', 'Nama dan Email wajib diisi!');
       return;
     }
