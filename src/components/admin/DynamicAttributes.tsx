@@ -14,7 +14,6 @@ export default function DynamicAttributes() {
   const [attributes, setAttributes] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState<string | null>(null);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'attributes' | 'categories'>('attributes');
@@ -40,12 +39,6 @@ export default function DynamicAttributes() {
 
   // Preview state
   const [previewCategory, setPreviewCategory] = useState<string>('');
-
-  // ── Helpers ──
-  const showNotification = (msg: string) => {
-    setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
-  };
 
   // ── Data Fetching ──
   const fetchData = async () => {
@@ -105,7 +98,7 @@ export default function DynamicAttributes() {
           body: JSON.stringify(payload),
         });
         const json = await res.json();
-        if (json.success) { showNotification(`Atribut "${label}" berhasil diperbarui.`); fetchData(); }
+        if (json.success) { Swal.success('Berhasil!', `Atribut "${label}" telah diperbarui.`); fetchData(); }
         else Swal.error('Gagal', json.message || 'Gagal memperbarui atribut');
       } else {
         const res = await fetch('/api/attributes', {
@@ -113,7 +106,7 @@ export default function DynamicAttributes() {
           body: JSON.stringify({ key: key.toLowerCase().replace(/\s+/g, '_'), ...payload }),
         });
         const json = await res.json();
-        if (json.success) { showNotification(`Atribut "${label}" berhasil ditambahkan.`); fetchData(); }
+        if (json.success) { Swal.success('Berhasil!', `Atribut "${label}" telah ditambahkan.`); fetchData(); }
         else Swal.error('Gagal', json.message || 'Gagal menambahkan atribut');
       }
       setAttrModalOpen(false);
@@ -127,7 +120,7 @@ export default function DynamicAttributes() {
     try {
       const res = await fetch(`/api/attributes/${id}`, { method: 'DELETE' });
       const json = await res.json();
-      if (json.success) { showNotification('Atribut berhasil dihapus.'); fetchData(); }
+      if (json.success) { Swal.success('Terhapus!', 'Atribut berhasil dihapus.'); fetchData(); }
       else Swal.error('Gagal', json.message || 'Gagal menghapus atribut');
     } catch { Swal.error('Error', 'Gagal menghubungkan ke server'); }
   };
@@ -155,7 +148,7 @@ export default function DynamicAttributes() {
           body: JSON.stringify({ label: catLabel, description: catDesc }),
         });
         const json = await res.json();
-        if (json.success) { showNotification(`Kategori "${catLabel}" berhasil diperbarui.`); fetchData(); }
+        if (json.success) { Swal.success('Berhasil!', `Kategori "${catLabel}" telah diperbarui.`); fetchData(); }
         else Swal.error('Gagal', json.message || 'Gagal memperbarui kategori');
       } else {
         const res = await fetch('/api/categories', {
@@ -163,7 +156,7 @@ export default function DynamicAttributes() {
           body: JSON.stringify({ key: catKey.toLowerCase().replace(/\s+/g, '_'), label: catLabel, description: catDesc }),
         });
         const json = await res.json();
-        if (json.success) { showNotification(`Kategori "${catLabel}" berhasil ditambahkan.`); fetchData(); }
+        if (json.success) { Swal.success('Berhasil!', `Kategori "${catLabel}" telah ditambahkan.`); fetchData(); }
         else Swal.error('Gagal', json.message || 'Gagal menambahkan kategori');
       }
       setCatModalOpen(false);
@@ -181,7 +174,7 @@ export default function DynamicAttributes() {
     try {
       const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
       const json = await res.json();
-      if (json.success) { showNotification('Kategori berhasil dihapus.'); fetchData(); }
+      if (json.success) { Swal.success('Terhapus!', 'Kategori berhasil dihapus.'); fetchData(); }
       else Swal.error('Gagal', json.message || 'Gagal menghapus kategori');
     } catch { Swal.error('Error', 'Gagal menghubungkan ke server'); }
   };
@@ -270,15 +263,6 @@ export default function DynamicAttributes() {
   // ══════════════════════════════════
   return (
     <div className="space-y-6">
-      {/* Notification Toast */}
-      {notification && (
-        <div className="fixed top-4 right-4 z-50 bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-bounce">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          <span className="text-sm font-medium">{notification}</span>
-        </div>
-      )}
 
       <PageHeader
         title="Atribut Dinamis & Kategori Pengguna"

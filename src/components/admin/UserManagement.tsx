@@ -36,14 +36,7 @@ export default function UserManagement() {
   });
   
   // Selected user for delete / reset password action
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [notification, setNotification] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  const showNotification = (msg: string) => {
-    setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
-  };
 
   const fetchMeta = async () => {
     try {
@@ -150,7 +143,6 @@ export default function UserManagement() {
         });
         const json = await res.json();
         if (json.success) {
-          showNotification(`Pengguna ${formData.name} berhasil diperbarui.`);
           Swal.success('Berhasil!', `Data pengguna ${formData.name} telah diperbarui.`);
           fetchUsers();
         } else {
@@ -164,7 +156,6 @@ export default function UserManagement() {
         });
         const json = await res.json();
         if (json.success) {
-          showNotification(`Pengguna ${formData.name} berhasil ditambahkan.`);
           Swal.success('Berhasil!', `Pengguna baru ${formData.name} telah ditambahkan.`);
           fetchUsers();
         } else {
@@ -190,7 +181,6 @@ export default function UserManagement() {
       const res = await fetch(`/api/users/${selectedUser._id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
-        showNotification(`Pengguna ${selectedUser.name} berhasil dihapus.`);
         Swal.success('Terhapus!', `Pengguna ${selectedUser.name} berhasil dihapus.`);
         fetchUsers();
       } else {
@@ -218,7 +208,6 @@ export default function UserManagement() {
       });
       const json = await res.json();
       if (json.success) {
-        showNotification(`Password untuk pengguna ${selectedUser.name} berhasil di-reset menjadi "123456".`);
         Swal.success('Password Di-reset', `Password untuk ${selectedUser.name} telah di-reset menjadi "123456".`);
       } else {
         Swal.error('Gagal', json.message || 'Gagal reset password');
@@ -306,15 +295,6 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-6">
-      {notification && (
-        <div className="fixed top-4 right-4 z-50 bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-bounce">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          <span className="text-sm font-medium">{notification}</span>
-        </div>
-      )}
-
       <PageHeader 
         title="Manajemen Pengguna" 
         subtitle={`${users.length} pengguna terdaftar di dalam sistem`} 

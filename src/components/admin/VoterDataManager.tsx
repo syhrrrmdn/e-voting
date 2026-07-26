@@ -15,18 +15,12 @@ export default function VoterDataManager() {
   const [editedCategory, setEditedCategory] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [limit, setLimit] = useState(10);
-
-  const showNotification = (msg: string) => {
-    setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
-  };
 
   const fetchUsersData = async (page: number = currentPage, searchQuery: string = search, pageLimit: number = limit) => {
     try {
@@ -104,7 +98,6 @@ export default function VoterDataManager() {
       const json = await res.json();
 
       if (json.success) {
-        showNotification(`Kategori & atribut ${selectedUser.name} berhasil diperbarui.`);
         setEditModalOpen(false);
         setSelectedUser(null);
         fetchUsersData(currentPage, search, limit);
@@ -221,15 +214,6 @@ export default function VoterDataManager() {
 
   return (
     <div className="space-y-6">
-      {notification && (
-        <div className="fixed top-4 right-4 z-50 bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-bounce">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          <span className="text-sm font-medium">{notification}</span>
-        </div>
-      )}
-
       <PageHeader
         title="Manajemen Atribut & Kategori Pengguna"
         subtitle="Atur kategori dan atribut dinamis untuk Pemilih maupun Admin Pemilihan agar data terkelola dengan baik"
