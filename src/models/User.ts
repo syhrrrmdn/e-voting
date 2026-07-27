@@ -6,7 +6,7 @@ export interface IUser {
   id: string;
   name: string;
   email: string;
-  passwordHash?: string; // Optional password hash for secure login
+  passwordHash?: string;
   role: UserRole;
   avatar?: string; // Cloudinary secure URL
   category: string; // Dynamic user category key (e.g. 'mahasiswa', 'dosen', 'staff')

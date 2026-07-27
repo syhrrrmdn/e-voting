@@ -4,7 +4,6 @@ import { getAuthUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { checkEligibility } from '@/lib/ruleEngine';
 import Election from '@/models/Election';
-import User from '@/models/User';
 import { voteSchema, validateBody } from '@/lib/validations';
 
 // POST - Cast a vote (atomic via RPC)
